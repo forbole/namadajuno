@@ -1,82 +1,132 @@
-use tokio::join;
+use async_channel::Receiver;
 use tokio::task::JoinHandle;
 
-use async_channel::Receiver;
-
+use namada_sdk::tx::Tx as NamadaTx;
+use namada_sdk::tx::data::TxType;
+use tendermint::abci::types::ExecTxResult;
+use tendermint::abci::Code;
 use tendermint::block::commit_sig::CommitSig;
 use tendermint::block::Commit;
 use tendermint::validator::Info as ValidatorInfo;
 
-use crate::config;
 use crate::database;
 use crate::node;
 use crate::utils;
 use crate::Error;
 
-pub fn start(
+#[derive(Clone)]
+pub struct Context {
     rx: Receiver<u64>,
-    config: config::ChainConfig,
+    bech32_prefix: String,
     node: node::Node,
     db: database::Database,
-) -> JoinHandle<Result<(), Error>> {
-    println!("worker start");
+    checksums_map: std::collections::HashMap<String, String>,
+}
+
+impl Context {
+    pub fn new(
+        rx: Receiver<u64>,
+        bech32_prefix: String,
+        node: node::Node,
+        db: database::Database,
+        checksums_map: std::collections::HashMap<String, String>,
+    ) -> Self {
+        Context {
+            rx,
+            bech32_prefix,
+            node,
+            db,
+            checksums_map,
+        }
+    }
+}
+
+pub fn start(ctx: Context) -> JoinHandle<Result<(), Error>> {
     tokio::spawn(async move {
         loop {
-            let height = rx.recv().await?;
-            process_block(height, config.clone(), &node, &db).await?;
+            let height = ctx.rx.recv().await?;
+            process_block(ctx.clone(), height).await?;
         }
     })
 }
 
-async fn process_block(
-    height: u64,
-    config: config::ChainConfig,
-    node: &node::Node,
-    db: &database::Database,
-) -> Result<(), Error> {
+async fn process_block(ctx: Context, height: u64) -> Result<(), Error> {
+    // Query the node
     let (tm_block_response, tm_block_results_response, tm_validators_response) = tokio::join!(
-        node.block(height),
-        node.block_results(height),
-        node.validators(height)
+        ctx.node.block(height),
+        ctx.node.block_results(height),
+        ctx.node.validators(height)
     );
 
     let tm_block = tm_block_response?.block;
     let tm_block_results = tm_block_results_response?;
     let tm_validators = tm_validators_response?.validators;
+    let txs_results = tm_block_results.txs_results.unwrap_or_default();
 
     // Save validators
     let validators: Vec<_> = tm_validators
         .iter()
         .map(|v| {
             database::Validator::new(
-                utils::convert_consensus_addr_to_bech32(&config.bech32_prefix, v.address.clone()),
+                utils::convert_consensus_addr_to_bech32(&ctx.bech32_prefix, v.address.clone()),
                 v.pub_key
-                    .to_bech32(utils::consensus_pub_key_prefix(&config.bech32_prefix).as_str()),
+                    .to_bech32(utils::consensus_pub_key_prefix(&ctx.bech32_prefix).as_str()),
             )
         })
         .collect();
-    database::Validators::from(validators).save(db).await?;
+    database::Validators::from(validators).save(&ctx.db).await?;
 
     // Save block
-    let block = database::Block::from_tm_block(
-        tm_block.clone(),
-        tm_block_results.txs_results,
-        &config.bech32_prefix,
-    );
-    block.save(db).await?;
+    let block =
+        database::Block::from_tm_block(tm_block.clone(), txs_results.clone(), &ctx.bech32_prefix);
+    block.save(&ctx.db).await?;
 
     // Save commits
     if let Some(commit) = tm_block.last_commit {
-        process_commit(&config, &db, height, commit, tm_validators).await?;
+        process_commit(ctx.clone(), height, commit, tm_validators).await?;
+    }
+
+    // Save transactions
+    for (i, tx) in tm_block.data.iter().enumerate() {
+        process_tx(ctx.clone(), height, txs_results[i].clone(), tx.clone()).await?;
     }
 
     println!("Processed {}", height);
     Ok(())
 }
 
+async fn process_tx(
+    ctx: Context,
+    height: u64,
+    tx_results: ExecTxResult,
+    raw_tx: Vec<u8>,
+) -> Result<(), Error> {
+    let namada_tx: NamadaTx = NamadaTx::try_from(raw_tx.as_slice()).map_err(|_| Error::InvalidTxData)?;
+
+    let tx_type =  match namada_tx.header.tx_type {
+        TxType::Raw => "raw",
+        TxType::Wrapper(_) => "wrapper",
+        TxType::Decrypted(_) => "decrypted",
+        TxType::Protocol(_) => "protocol",
+    };
+
+    let tx = database::Tx::new(
+        utils::tx_hash(raw_tx),
+        height as i64,
+        tx_results.code == Code::Ok,
+        tx_type.into(),
+        tx_results.gas_wanted,
+        tx_results.gas_used,
+        tx_results.log,
+    );
+
+    tx.save(&ctx.db).await?;
+
+    Ok(())
+}
+
 async fn process_commit(
-    config: &config::ChainConfig,
-    db: &database::Database,
+    ctx: Context,
     height: u64,
     commit: Commit,
     validators: Vec<ValidatorInfo>,
@@ -95,7 +145,7 @@ async fn process_commit(
                 }
 
                 pre_commits.push(database::PreCommit::from_tm_commit_sig(
-                    &config.bech32_prefix,
+                    &ctx.bech32_prefix,
                     height,
                     validator_address,
                     validators.clone(),
@@ -112,7 +162,7 @@ async fn process_commit(
                 }
 
                 pre_commits.push(database::PreCommit::from_tm_commit_sig(
-                    &config.bech32_prefix,
+                    &ctx.bech32_prefix,
                     height,
                     validator_address,
                     validators.clone(),
@@ -123,7 +173,9 @@ async fn process_commit(
         }
     }
 
-    database::PreCommits::from(pre_commits).save(db).await?;
+    database::PreCommits::from(pre_commits)
+        .save(&ctx.db)
+        .await?;
 
     Ok(())
 }

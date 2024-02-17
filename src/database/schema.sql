@@ -3,7 +3,6 @@ CREATE TABLE validator
     consensus_address TEXT NOT NULL PRIMARY KEY, /* Validator consensus address */
     consensus_pubkey  TEXT NOT NULL UNIQUE /* Validator consensus public key */
 );
-CREATE UNIQUE INDEX validator_unique_index ON validator (consensus_address, consensus_pubkey);
 
 CREATE TABLE block
 (
@@ -29,3 +28,22 @@ CREATE TABLE pre_commit
 );
 CREATE INDEX pre_commit_validator_address_index ON pre_commit (validator_address);
 CREATE INDEX pre_commit_height_index ON pre_commit (height);
+
+CREATE TABLE transaction
+(
+    hash         TEXT    NOT NULL,
+    height       BIGINT  NOT NULL,
+    success      BOOLEAN NOT NULL,
+
+    /* Tx info */
+    tx_type         TEXT   NOT NULL,
+
+    /* Tx results */
+    gas_wanted   BIGINT           DEFAULT 0,
+    gas_used     BIGINT           DEFAULT 0,
+    raw_log      TEXT,
+
+    CONSTRAINT unique_tx UNIQUE (hash)
+);
+CREATE INDEX transaction_hash_index ON transaction (hash);
+CREATE INDEX transaction_height_index ON transaction (height);

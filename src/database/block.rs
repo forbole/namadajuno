@@ -18,7 +18,7 @@ pub struct Block {
 impl Block {
     pub fn from_tm_block(
         block: TmBlock,
-        tx_results: Option<Vec<ExecTxResult>>,
+        tx_results: Vec<ExecTxResult>,
         main_prefix: &str,
     ) -> Self {
         Self {
@@ -54,15 +54,9 @@ impl Block {
     }
 }
 
-fn sum_total_gas(tx_results: Option<Vec<ExecTxResult>>) -> i64 {
-    match tx_results {
-        Some(tx_results) => {
-            let mut total_gas: i64 = 0;
-            for tx_result in tx_results {
-                total_gas += tx_result.gas_used;
-            }
-            total_gas
-        }
-        None => 0,
-    }
+fn sum_total_gas(tx_results: Vec<ExecTxResult>) -> i64 {
+    tx_results
+        .iter()
+        .map(|tx_result| tx_result.gas_used)
+        .sum()
 }

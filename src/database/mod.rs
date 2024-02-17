@@ -17,6 +17,9 @@ mod pre_commmit;
 pub use pre_commmit::PreCommit;
 pub use pre_commmit::PreCommits;
 
+mod tx;
+pub use tx::Tx;
+
 #[derive(Clone)]
 pub struct Database {
      pool: Arc<PgPool>,

@@ -45,24 +45,4 @@ impl Node {
             .await?;
         Ok(validator_set)
     }
-
-    pub async fn tx(&self, hash: Hash) -> Result<endpoint::tx::Response, Error> {
-        let tx = self.rpc_client.tx(hash, true).await?;
-        Ok(tx)
-    }
-
-    pub async fn txs(&self, height: u64) -> Result<Vec<endpoint::tx::Response>, Error> {
-        let block = self.block(height).await?;
-        let raw_txs = block.block.data;
-        let mut txs_responses: Vec<endpoint::tx::Response> = Vec::new();
-
-        for raw_tx in raw_txs.iter() {
-            let hash = Sha256::digest(raw_tx.clone()).to_vec();
-            println!("hash: {:?}", hash);
-            let tx_response = self.tx(Hash::try_from(hash)?).await?;
-            txs_responses.push(tx_response);
-        }
-
-        Ok(txs_responses)
-    }
 }

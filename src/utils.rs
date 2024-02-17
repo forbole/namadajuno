@@ -1,3 +1,4 @@
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::{env, fs};
 use subtle_encoding::{bech32, hex};
@@ -45,7 +46,6 @@ pub fn load_checksums() -> Result<HashMap<String, String>, crate::Error> {
     Ok(checksums_map)
 }
 
-
 pub fn consensus_pub_key_prefix(main_prefix: &str) -> String {
     format!(
         "{}{}{}{}",
@@ -73,6 +73,10 @@ pub fn find_validator(validators: Vec<ValidatorIfo>, address: TmAccountId) -> Op
             return Some(validator);
         }
     }
-    
+
     None
+}
+
+pub fn tx_hash(raw_tx: Vec<u8>) -> String {
+    String::from_utf8(hex::encode_upper(Sha256::digest(raw_tx))).expect("Invalid UTF-8 sequence")
 }
