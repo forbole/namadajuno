@@ -2,8 +2,9 @@ use async_channel::Receiver;
 use tokio::task::JoinHandle;
 use tracing::info;
 
-use namada_sdk::tx::Tx as NamadaTx;
+use namada_sdk;
 use namada_sdk::tx::data::TxType;
+use namada_sdk::tx::Tx as NamadaTx;
 use tendermint::abci::types::ExecTxResult;
 use tendermint::abci::Code;
 use tendermint::block::commit_sig::CommitSig;
@@ -18,7 +19,6 @@ use crate::Error;
 #[derive(Clone)]
 pub struct Context {
     rx: Receiver<u64>,
-    bech32_prefix: String,
     node: node::Node,
     db: database::Database,
     checksums_map: std::collections::HashMap<String, String>,
@@ -27,14 +27,12 @@ pub struct Context {
 impl Context {
     pub fn new(
         rx: Receiver<u64>,
-        bech32_prefix: String,
         node: node::Node,
         db: database::Database,
         checksums_map: std::collections::HashMap<String, String>,
     ) -> Self {
         Context {
             rx,
-            bech32_prefix,
             node,
             db,
             checksums_map,
@@ -69,17 +67,15 @@ async fn process_block(ctx: Context, height: u64) -> Result<(), Error> {
         .iter()
         .map(|v| {
             database::Validator::new(
-                utils::convert_consensus_addr_to_bech32(&ctx.bech32_prefix, v.address.clone()),
-                v.pub_key
-                    .to_bech32(utils::consensus_pub_key_prefix(&ctx.bech32_prefix).as_str()),
+                utils::addr_to_bech32(v.address.clone()),
+                v.pub_key.to_bech32(utils::COMMON_PK_HRP),
             )
         })
         .collect();
     database::Validators::from(validators).save(&ctx.db).await?;
 
     // Save block
-    let block =
-        database::Block::from_tm_block(tm_block.clone(), txs_results.clone(), &ctx.bech32_prefix);
+    let block = database::Block::from_tm_block(tm_block.clone(), txs_results.clone());
     block.save(&ctx.db).await?;
 
     // Save commits
@@ -102,14 +98,20 @@ async fn process_tx(
     tx_results: ExecTxResult,
     raw_tx: Vec<u8>,
 ) -> Result<(), Error> {
-    let namada_tx: NamadaTx = NamadaTx::try_from(raw_tx.as_slice()).map_err(|_| Error::InvalidTxData)?;
+    let namada_tx: NamadaTx =
+        NamadaTx::try_from(raw_tx.as_slice()).map_err(|_| Error::InvalidTxData)?;
 
-    let tx_type =  match namada_tx.header.tx_type {
+    let tx_type = match namada_tx.header.tx_type {
         TxType::Raw => "raw",
         TxType::Wrapper(_) => "wrapper",
         TxType::Decrypted(_) => "decrypted",
         TxType::Protocol(_) => "protocol",
     };
+
+    info!(
+        "{}",
+        String::from_utf8(namada_tx.memo().unwrap_or_default()).expect("Invalid UTF-8 sequence")
+    );
 
     let tx = database::Tx::new(
         utils::tx_hash(raw_tx),
@@ -146,7 +148,6 @@ async fn process_commit(
                 }
 
                 pre_commits.push(database::PreCommit::from_tm_commit_sig(
-                    &ctx.bech32_prefix,
                     height,
                     validator_address,
                     validators.clone(),
@@ -163,7 +164,6 @@ async fn process_commit(
                 }
 
                 pre_commits.push(database::PreCommit::from_tm_commit_sig(
-                    &ctx.bech32_prefix,
                     height,
                     validator_address,
                     validators.clone(),

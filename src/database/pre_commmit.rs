@@ -33,7 +33,6 @@ impl PreCommit {
     }
 
     pub fn from_tm_commit_sig(
-        main_prefix: &str,
         height: u64,
         validator_address: tendermint::account::Id,
         validators: Vec<TmValidatorInfo>,
@@ -43,7 +42,7 @@ impl PreCommit {
             .expect("validator not found");
 
         PreCommit::new(
-            utils::convert_consensus_addr_to_bech32(main_prefix, validator_address),
+            utils::addr_to_bech32(validator_address),
             height as i64,
             DateTime::from_timestamp(timestamp.unix_timestamp(), 0).expect("invalid timestamp"),
             validator.power.into(),

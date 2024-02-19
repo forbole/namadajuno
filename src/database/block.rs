@@ -16,20 +16,13 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn from_tm_block(
-        block: TmBlock,
-        tx_results: Vec<ExecTxResult>,
-        main_prefix: &str,
-    ) -> Self {
+    pub fn from_tm_block(block: TmBlock, tx_results: Vec<ExecTxResult>) -> Self {
         Self {
             height: block.header.height.into(),
             hash: block.header.hash().to_string(),
             num_txs: block.data.len() as i64,
             total_gas: sum_total_gas(tx_results),
-            proposer_address: utils::convert_consensus_addr_to_bech32(
-                main_prefix,
-                block.header.proposer_address,
-            ),
+            proposer_address: utils::addr_to_bech32(block.header.proposer_address),
             timestamp: DateTime::from_timestamp(block.header.time.unix_timestamp(), 0)
                 .expect("invalid timestamp"),
         }
@@ -55,8 +48,5 @@ impl Block {
 }
 
 fn sum_total_gas(tx_results: Vec<ExecTxResult>) -> i64 {
-    tx_results
-        .iter()
-        .map(|tx_result| tx_result.gas_used)
-        .sum()
+    tx_results.iter().map(|tx_result| tx_result.gas_used).sum()
 }

@@ -27,7 +27,6 @@ pub struct Config {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChainConfig {
-    pub bech32_prefix: String,
     pub modules: Vec<String>,
 }
 

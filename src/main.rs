@@ -62,7 +62,6 @@ async fn start(config: config::Config) -> Result<(), Error> {
     let mut workers: Vec<JoinHandle<Result<(), Error>>> = vec![]; // Array of workers
     let ctx = worker::Context::new(
         rx,
-        config.chain.bech32_prefix.clone(),
         node.clone(),
         db.clone(),
         std::collections::HashMap::new(),

@@ -4,15 +4,12 @@ use std::{env, fs};
 use subtle_encoding::{bech32, hex};
 use tendermint::account::Id as TmAccountId;
 use tendermint::validator::Info as ValidatorIfo;
+pub use namada_sdk::types::string_encoding::ADDRESS_HRP;
+pub use namada_sdk::types::string_encoding::COMMON_PK_HRP;
 
 const CHECKSUMS_FILE_PATH_ENV: &str = "CHECKSUMS_FILE_PATH";
 const CHECKSUMS_REMOTE_URL_ENV: &str = "CHECKSUMS_REMOTE_URL";
 const CHECKSUMS_DEFAULT_PATH: &str = "checksums.json";
-
-const BECH32_PREFIX_CONSENSUS: &str = "cons";
-const BECH32_PREFIX_VALIDATOR: &str = "val";
-const BECH32_PREFIX_PUBLIC: &str = "pub";
-const BECH32_PREFIX_OPERATOR: &str = "oper";
 
 pub fn load_checksums() -> Result<HashMap<String, String>, crate::Error> {
     let checksums_file_path = env::var(CHECKSUMS_FILE_PATH_ENV);
@@ -46,24 +43,10 @@ pub fn load_checksums() -> Result<HashMap<String, String>, crate::Error> {
     Ok(checksums_map)
 }
 
-pub fn consensus_pub_key_prefix(main_prefix: &str) -> String {
-    format!(
-        "{}{}{}{}",
-        main_prefix, BECH32_PREFIX_VALIDATOR, BECH32_PREFIX_CONSENSUS, BECH32_PREFIX_PUBLIC
-    )
-}
-
-fn consensus_address_prefix(main_prefix: &str) -> String {
-    format!(
-        "{}{}{}",
-        main_prefix, BECH32_PREFIX_VALIDATOR, BECH32_PREFIX_CONSENSUS
-    )
-}
-
-pub fn convert_consensus_addr_to_bech32(main_prefix: &str, consensus_addr: TmAccountId) -> String {
+pub fn addr_to_bech32(addr: TmAccountId) -> String {
     bech32::encode(
-        consensus_address_prefix(main_prefix).as_str(),
-        consensus_addr.as_bytes(),
+        ADDRESS_HRP,
+        addr.as_bytes(),
     )
 }
 
