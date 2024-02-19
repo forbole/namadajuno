@@ -1,5 +1,6 @@
 use async_channel::Receiver;
 use tokio::task::JoinHandle;
+use tracing::info;
 
 use namada_sdk::tx::Tx as NamadaTx;
 use namada_sdk::tx::data::TxType;
@@ -91,7 +92,7 @@ async fn process_block(ctx: Context, height: u64) -> Result<(), Error> {
         process_tx(ctx.clone(), height, txs_results[i].clone(), tx.clone()).await?;
     }
 
-    println!("Processed {}", height);
+    info!("Processed {}", height);
     Ok(())
 }
 

@@ -1,15 +1,17 @@
-use futures::stream::StreamExt;
-use futures_util::pin_mut;
-use futures_util::Stream;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::task::JoinHandle;
+use tracing;
+use tracing_subscriber::layer::SubscriberExt;
 
 use async_channel;
 use async_channel::Receiver;
 use async_channel::Sender;
+use futures::stream::StreamExt;
+use futures_util::pin_mut;
+use futures_util::Stream;
+use tokio::task::JoinHandle;
 
 use error::Error;
 use tendermint_rpc::HttpClient;
@@ -30,6 +32,15 @@ const CHANNEL_SIZE: usize = 100;
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> Result<(), Error> {
     let config = config::load_config()?;
+
+    let std_out = tracing_subscriber::fmt::layer().pretty();
+    let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
+    let subscriber = tracing_subscriber::Registry::default()
+        .with(std_out)
+        .with(env_filter);
+    tracing::subscriber::set_global_default(subscriber).expect("Could not set global logger");
+
     start(config).await?;
     Ok(())
 }
@@ -72,8 +83,6 @@ async fn start(config: config::Config) -> Result<(), Error> {
 
     Ok(())
 }
-
-
 
 fn blocks_stream(start_height: u64, end_height: u64) -> impl Stream<Item = u64> {
     futures::stream::iter(start_height..end_height).then(move |i| async move { i })
