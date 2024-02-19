@@ -108,15 +108,12 @@ async fn process_tx(
         TxType::Protocol(_) => "protocol",
     };
 
-    info!(
-        "{}",
-        String::from_utf8(namada_tx.memo().unwrap_or_default()).expect("Invalid UTF-8 sequence")
-    );
-
+    let tx_hash = utils::tx_hash(raw_tx);
     let tx = database::Tx::new(
-        utils::tx_hash(raw_tx),
+        tx_hash.clone(),
         height as i64,
         tx_results.code == Code::Ok,
+        String::from_utf8(namada_tx.memo().unwrap_or_default()).expect("Invalid UTF-8 sequence"),
         tx_type.into(),
         tx_results.gas_wanted,
         tx_results.gas_used,
@@ -124,6 +121,12 @@ async fn process_tx(
     );
 
     tx.save(&ctx.db).await?;
+
+    // Save message
+    let msg = database::Message::from_tx(&ctx.checksums_map, height as i64, tx_hash, namada_tx);
+    if let Some(msg) = msg {
+        msg.save(&ctx.db).await?;
+    }
 
     Ok(())
 }

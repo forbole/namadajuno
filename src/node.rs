@@ -1,7 +1,5 @@
 use crate::error::Error;
 use tendermint::block::Height;
-use tendermint::Hash;
-use sha2::{Sha256, Digest};
 use tendermint_rpc::{endpoint, Client, HttpClient, Paging};
 
 #[derive(Clone)]

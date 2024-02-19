@@ -37,6 +37,7 @@ CREATE TABLE transaction
 
     /* Tx info */
     tx_type         TEXT   NOT NULL,
+    memo            TEXT,
 
     /* Tx results */
     gas_wanted   BIGINT           DEFAULT 0,
@@ -47,3 +48,15 @@ CREATE TABLE transaction
 );
 CREATE INDEX transaction_hash_index ON transaction (hash);
 CREATE INDEX transaction_height_index ON transaction (height);
+
+CREATE TABLE message
+(
+    transaction_hash            TEXT   NOT NULL,
+    type                        TEXT   NOT NULL,
+    value                       JSONB  NOT NULL,
+
+    height                      BIGINT NOT NULL,
+    CONSTRAINT unique_message_per_tx UNIQUE (transaction_hash)
+);
+CREATE INDEX message_transaction_hash_index ON message (transaction_hash);
+CREATE INDEX message_type_index ON message (type);

@@ -17,6 +17,9 @@ mod pre_commmit;
 pub use pre_commmit::PreCommit;
 pub use pre_commmit::PreCommits;
 
+mod message;
+pub use message::Message;
+
 mod tx;
 pub use tx::Tx;
 

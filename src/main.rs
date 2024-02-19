@@ -58,14 +58,11 @@ async fn start(config: config::Config) -> Result<(), Error> {
     let shutdown = Arc::new(AtomicBool::new(false));
     let (tx, rx): (Sender<u64>, Receiver<u64>) = async_channel::bounded(CHANNEL_SIZE);
 
+    // Setup worker context
+    let ctx = worker::Context::new(rx, node.clone(), db.clone(), utils::load_checksums()?);
+
     // Start workers
     let mut workers: Vec<JoinHandle<Result<(), Error>>> = vec![]; // Array of workers
-    let ctx = worker::Context::new(
-        rx,
-        node.clone(),
-        db.clone(),
-        std::collections::HashMap::new(),
-    );
     for _ in 0..config.parsing.workers {
         let worker = worker::start(ctx.clone());
         workers.push(worker);
