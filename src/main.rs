@@ -35,7 +35,7 @@ async fn main() -> Result<(), Error> {
 
     let std_out = tracing_subscriber::fmt::layer().pretty();
     let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(&config.logging.level));
     let subscriber = tracing_subscriber::Registry::default()
         .with(std_out)
         .with(env_filter);
