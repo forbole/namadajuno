@@ -49,7 +49,7 @@ impl Message {
                 value,
             });
         } else if let Err(e) = message {
-            tracing::error!("Error parsing tx: {:?} at height {}", e, height);
+            tracing::error!("Error parsing tx: hash {} at height {}, err: {}", tx_hash, height, e);
         }
 
         None
