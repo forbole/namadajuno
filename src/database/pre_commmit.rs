@@ -39,7 +39,7 @@ impl PreCommit {
         timestamp: tendermint::Time,
     ) -> Self {
         let validator = utils::find_validator(validators.clone(), validator_address)
-            .expect("validator not found");
+            .expect(format!("validator not found {}", utils::addr_to_bech32(validator_address)).as_str());
 
         PreCommit::new(
             utils::addr_to_bech32(validator_address),

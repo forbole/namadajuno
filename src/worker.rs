@@ -157,22 +157,6 @@ async fn process_commit(
                     timestamp,
                 ));
             }
-            CommitSig::BlockIdFlagNil {
-                validator_address,
-                timestamp,
-                signature,
-            } => {
-                if signature.is_none() {
-                    continue;
-                }
-
-                pre_commits.push(database::PreCommit::from_tm_commit_sig(
-                    height,
-                    validator_address,
-                    validators.clone(),
-                    timestamp,
-                ));
-            }
             _ => {}
         }
     }
