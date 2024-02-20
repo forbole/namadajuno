@@ -2,13 +2,13 @@ use namada_sdk::tendermint_proto::Protobuf;
 use serde_json::json;
 use std::collections::HashMap;
 use subtle_encoding::hex;
-use tracing::info;
 
 use namada_sdk::ibc::apps::transfer::types::msgs::transfer as ibc_transfer_msg;
 use namada_sdk::ibc::core::channel::types::msgs as ibc_channel_msg;
 use namada_sdk::ibc::core::client::types::msgs as ibc_client_msg;
 use namada_sdk::ibc::core::connection::types::msgs as ibc_connection_msg;
 use namada_sdk::ibc::primitives::Msg;
+use namada_sdk::types::ibc::MsgShieldedTransfer;
 
 use namada_sdk::account;
 use namada_sdk::borsh::BorshDeserialize as NamadaBorshDeserialize;
@@ -41,7 +41,8 @@ impl Message {
         tx_hash: String,
         tx: NamadaTx,
     ) -> Option<Message> {
-        let message = parse_tx_to_message(checksums_map, tx).expect("error when parsing tx");
+        let message = parse_tx_to_message(checksums_map, tx)
+            .expect(format!("error when parsing tx {}", tx_hash).as_str());
         if let Some((message_type, value)) = message {
             return Some(Message {
                 height,
@@ -134,6 +135,7 @@ fn parse_tx_to_message(
             "tx_ibc" => {
                 // NOTE: This is a temporary solution to parse IBC messages since IBC messages are not yet supported in JSON format.
                 let mut result = (tx_type.clone(), json!({}));
+                
                 if let Ok(msg) = ibc_client_msg::MsgCreateClient::decode(&data[..]) {
                     let value = json!(msg.to_any());
                     result = (tx_type.clone() + ".MsgCreateClient", value);
@@ -143,6 +145,9 @@ fn parse_tx_to_message(
                 } else if let Ok(msg) = ibc_client_msg::MsgSubmitMisbehaviour::decode(&data[..]) {
                     let value = json!(msg.to_any());
                     result = (tx_type.clone() + ".MsgSubmitMisbehaviour", value);
+                } else if let Ok(msg) = ibc_client_msg::MsgUpgradeClient::decode(&data[..]) {
+                    let value = json!(msg.to_any());
+                    result = (tx_type.clone() + ".MsgUpgradeClient", value);
                 } else if let Ok(msg) = ibc_connection_msg::MsgConnectionOpenInit::decode(&data[..])
                 {
                     let value = json!(msg.to_any());
@@ -160,9 +165,6 @@ fn parse_tx_to_message(
                 {
                     let value = json!(msg.to_any());
                     result = (tx_type.clone() + ".MsgConnectionOpenConfirm", value);
-                } else if let Ok(msg) = ibc_client_msg::MsgUpgradeClient::decode(&data[..]) {
-                    let value = json!(msg.to_any());
-                    result = (tx_type.clone() + ".MsgUpgradeClient", value);
                 } else if let Ok(msg) = ibc_channel_msg::MsgChannelOpenInit::decode(&data[..]) {
                     let value = json!(msg.to_any());
                     result = (tx_type.clone() + ".MsgChannelOpenInit", value);
@@ -196,8 +198,17 @@ fn parse_tx_to_message(
                 } else if let Ok(msg) = ibc_transfer_msg::MsgTransfer::decode(&data[..]) {
                     let value = json!(msg.to_any());
                     result = (tx_type.clone() + ".MsgTransfer", value);
+                } else if let Ok(msg) = MsgShieldedTransfer::try_from_slice(&data[..]) {
+                    let value = json!({
+                        "message": msg.message.to_any(),
+                        "shielded_transfer": {
+                            "transfer": msg.shielded_transfer.transfer,
+                        },
+                    });
+                    result = (tx_type.clone() + ".MsgShieldedTransfer", value);
                 } else {
-                    info!("couldn't parse IBC message: {:?}", tx_type);
+                    // TODO: Enable this when IBC deserialization is fixed.
+                    //Err(Error::InvalidTxData)?;
                 }
 
                 Some(result)

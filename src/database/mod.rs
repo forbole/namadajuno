@@ -4,8 +4,6 @@ use std::sync::Arc;
 use crate::config::DBConfig;
 use crate::Error;
 
-const BIND_LIMIT: usize = 65535;
-
 mod validator;
 pub use validator::Validator;
 pub use validator::Validators;
