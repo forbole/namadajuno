@@ -1,0 +1,27 @@
+table:
+  name: transaction
+  schema: public
+object_relationships:
+- name: block
+  using:
+    manual_configuration:
+      remote_table:
+        name: block
+        schema: public
+      column_mapping:
+        height: height
+      insertion_order: null
+select_permissions:
+- permission:
+    allow_aggregations: false
+    columns:
+    - hash
+    - height
+    - success
+    - memo
+    - gas_wanted
+    - gas_used
+    - raw_log
+    filter: {}
+    limit: 100
+  role: anonymous

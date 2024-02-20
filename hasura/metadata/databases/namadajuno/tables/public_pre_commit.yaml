@@ -1,0 +1,25 @@
+table:
+  name: pre_commit
+  schema: public
+object_relationships:
+- name: validator
+  using:
+    manual_configuration:
+      remote_table:
+        name: validator
+        schema: public
+      column_mapping:
+        consensus_address: validator_address
+      insertion_order: null
+select_permissions:
+- permission:
+    allow_aggregations: true
+    columns:
+    - validator_address
+    - height
+    - timestamp
+    - voting_power
+    - proposer_priority
+    filter: {}
+    limit: 100
+  role: anonymous
