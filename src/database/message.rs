@@ -78,19 +78,22 @@ fn parse_tx_to_message(
     checksums_map: &HashMap<String, String>,
     tx: NamadaTx,
 ) -> Result<Option<(String, JsonValue)>, Error> {
-    let mut parsed_message = None;
     let code = tx
         .get_section(tx.code_sechash())
         .and_then(|s| s.code_sec())
-        .map(|s| s.code.hash().0)
-        .ok_or(Error::InvalidTxData)?;
+        .map(|s| s.code.hash().0);
 
-    let code_hex = String::from_utf8(hex::encode(code.as_slice())).expect("invalid hex");
+    // Return None if the code is not found
+    if code.is_none() {
+        return Ok(None);
+    }
+
+    let code_hex = String::from_utf8(hex::encode(code.unwrap().as_slice())).expect("invalid hex");
     let unknown_type = &String::from("unknown");
     let tx_type = checksums_map.get(&code_hex).unwrap_or(unknown_type);
 
     let data = tx.data().ok_or(Error::InvalidTxData)?;
-    parsed_message = match tx_type.as_str() {
+    let parsed_message = match tx_type.as_str() {
         "tx_become_validator" => {
             let msg = pos::BecomeValidator::try_from_slice(&data[..])?;
             let value = json!(msg);
