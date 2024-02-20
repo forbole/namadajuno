@@ -1,11 +1,11 @@
 use chrono::{DateTime, Utc};
-use tendermint::validator::Info as TmValidatorInfo;
 use sqlx::{Postgres, QueryBuilder};
+use tendermint::validator::Info as TmValidatorInfo;
+use tracing;
 
 use crate::database::Database;
 use crate::utils;
 use crate::Error;
-
 
 pub struct PreCommit {
     pub validator_address: String,
@@ -38,16 +38,45 @@ impl PreCommit {
         validators: Vec<TmValidatorInfo>,
         timestamp: tendermint::Time,
     ) -> Self {
-        let validator = utils::find_validator(validators.clone(), validator_address)
-            .expect(format!("validator not found {}", utils::addr_to_bech32(validator_address)).as_str());
+        match utils::find_validator(validators.clone(), validator_address) {
+            Some(info) => {
+                return PreCommit::new(
+                    utils::addr_to_bech32(validator_address),
+                    height as i64,
+                    DateTime::from_timestamp(timestamp.unix_timestamp(), 0)
+                        .expect("invalid timestamp"),
+                    info.power.into(),
+                    info.proposer_priority.into(),
+                )
+            }
+            //
+            None => {
+                tracing::error!(
+                    "validator not found {}",
+                    utils::addr_to_bech32(validator_address)
+                );
+                return PreCommit::new(
+                    utils::addr_to_bech32(validator_address),
+                    height as i64,
+                    DateTime::from_timestamp(timestamp.unix_timestamp(), 0)
+                        .expect("invalid timestamp"),
+                    0,
+                    0,
+                );
+            }
+        };
 
-        PreCommit::new(
-            utils::addr_to_bech32(validator_address),
-            height as i64,
-            DateTime::from_timestamp(timestamp.unix_timestamp(), 0).expect("invalid timestamp"),
-            validator.power.into(),
-            validator.proposer_priority.into(),
-        )
+        // TODO: Consider this code after investigating the issue that find_validator returns None
+        // let validator = utils::find_validator(validators.clone(), validator_address)
+        //     .expect(format!("validator not found {}", utils::addr_to_bech32(validator_address)).as_str());
+
+        // PreCommit::new(
+        //     utils::addr_to_bech32(validator_address),
+        //     height as i64,
+        //     DateTime::from_timestamp(timestamp.unix_timestamp(), 0).expect("invalid timestamp"),
+        //     validator.power.into(),
+        //     validator.proposer_priority.into(),
+        // )
     }
 }
 
