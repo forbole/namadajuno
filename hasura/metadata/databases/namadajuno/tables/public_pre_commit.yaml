@@ -9,7 +9,7 @@ object_relationships:
         name: validator
         schema: public
       column_mapping:
-        consensus_address: validator_address
+        validator_address: consensus_address
       insertion_order: null
 select_permissions:
 - permission:

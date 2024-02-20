@@ -9,7 +9,7 @@ object_relationships:
         name: validator
         schema: public
       column_mapping:
-        consensus_address: proposer_address
+        proposer_address: consensus_address
       insertion_order: null
 array_relationships:
 - name: pre_commits
