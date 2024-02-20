@@ -9,7 +9,7 @@ object_relationships:
         schema: public
         name: transaction
       column_mapping:
-        transaction_hash: hash
+        hash: transaction_hash
       insertion_order: null
 select_permissions:
 - permission:

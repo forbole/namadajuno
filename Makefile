@@ -33,7 +33,6 @@ download-checksum:
 		$(DOWNLOAD_CMD) checksums.json $(URL); \
 	fi
 
-
 stop-docker-test:
 	@echo "Stopping Docker container..."
 	@docker stop bdjuno-test-db || true && docker rm bdjuno-test-db || true
