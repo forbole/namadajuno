@@ -15,7 +15,6 @@ use namada_sdk::borsh::BorshDeserialize as NamadaBorshDeserialize;
 use namada_sdk::governance;
 use namada_sdk::tx::data::pgf;
 use namada_sdk::tx::data::pos;
-use namada_sdk::tx::data::TxType;
 use namada_sdk::tx::Tx as NamadaTx;
 use namada_sdk::types::address;
 use namada_sdk::types::eth_bridge_pool;
@@ -41,15 +40,16 @@ impl Message {
         tx_hash: String,
         tx: NamadaTx,
     ) -> Option<Message> {
-        let message = parse_tx_to_message(checksums_map, tx)
-            .expect(format!("error when parsing tx {}", tx_hash).as_str());
-        if let Some((message_type, value)) = message {
+        let message = parse_tx_to_message(checksums_map, tx);
+        if let Ok(Some((message_type, value))) = message {
             return Some(Message {
                 height,
                 tx_hash,
                 message_type,
                 value,
             });
+        } else if let Err(e) = message {
+            tracing::error!("Error parsing tx: {:?} at height {}", e, height);
         }
 
         None
@@ -275,12 +275,12 @@ fn parse_tx_to_message(
             let msg = pos::Withdraw::try_from_slice(&data[..])?;
             let value = json!(msg);
             Some((tx_type.clone(), value))
-        },
+        }
         "unknown" => {
             let data_str = String::from_utf8(hex::encode(data)).expect("invalid utf8");
             let value = json!({ "data": data_str });
             Some((tx_type.clone(), value))
-        },
+        }
         _ => None,
     };
 
