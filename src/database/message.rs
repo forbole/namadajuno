@@ -277,8 +277,7 @@ fn parse_tx_to_message(
             Some((tx_type.clone(), value))
         }
         "unknown" => {
-            let data_str = String::from_utf8(hex::encode(data)).expect("invalid utf8");
-            let value = json!({ "data": data_str });
+            let value = json!({});
             Some((tx_type.clone(), value))
         }
         _ => None,
