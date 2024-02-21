@@ -14,7 +14,7 @@ tendermint = "0.34.0"
 tendermint-rpc = { version = "0.34.0", features = ["http-client"] }
 thiserror = "1.0.57"
 tokio = { version = "1.36.0", features = ["rt-multi-thread"] }
-namada_sdk = { git = "https://github.com/anoma/namada", rev = "v0.31.0" }
+namada_sdk = { git = "https://github.com/anoma/namada", rev = "v0.31.5" }
 ureq = "2.9.1"
 futures = "0.3.30"
 futures-util = { version = "0.3.30", features = ["sink"] }
