@@ -52,8 +52,9 @@ impl PreCommit {
             //
             None => {
                 tracing::error!(
-                    "validator not found {}",
-                    utils::addr_to_bech32(validator_address)
+                    "validator not found {} at height {}",
+                    utils::addr_to_bech32(validator_address),
+                    height,
                 );
                 return PreCommit::new(
                     utils::addr_to_bech32(validator_address),
