@@ -95,42 +95,42 @@ fn parse_tx_to_message(
     let data = tx.data().ok_or(Error::InvalidTxData)?;
     let parsed_message = match tx_type.as_str() {
         "tx_become_validator" => {
-            let msg = pos::BecomeValidator::try_from_slice(&data[..])?;
+            let msg = pos::BecomeValidator::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_bond" => {
-            let msg = pos::Bond::try_from_slice(&data[..])?;
+            let msg = pos::Bond::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_bridge_pool" => {
-            let msg = eth_bridge_pool::PendingTransfer::try_from_slice(&data[..])?;
+            let msg = eth_bridge_pool::PendingTransfer::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_change_consensus_key" => {
-            let msg = pos::ConsensusKeyChange::try_from_slice(&data[..])?;
+            let msg = pos::ConsensusKeyChange::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_change_validator_commission" => {
-            let msg = pos::CommissionChange::try_from_slice(&data[..])?;
+            let msg = pos::CommissionChange::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_change_validator_metadata" => {
-            let msg = pos::MetaDataChange::try_from_slice(&data[..])?;
+            let msg = pos::MetaDataChange::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_claim_rewards" => {
-            let msg = pos::ClaimRewards::try_from_slice(&data[..])?;
+            let msg = pos::ClaimRewards::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_deactivate_validator" => {
-            let msg = address::Address::try_from_slice(&data[..])?;
+            let msg = address::Address::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
@@ -212,17 +212,17 @@ fn parse_tx_to_message(
             Some(result)
         }
         "tx_init_account" => {
-            let msg = account::InitAccount::try_from_slice(&data[..])?;
+            let msg = account::InitAccount::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_init_proposal" => {
-            let msg = governance::InitProposalData::try_from_slice(&data[..])?;
+            let msg = governance::InitProposalData::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_reactivate_validator" => {
-            let msg = address::Address::try_from_slice(&data[..])?;
+            let msg = address::Address::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
@@ -232,47 +232,47 @@ fn parse_tx_to_message(
             Some((tx_type.clone(), value))
         }
         "tx_resign_steward" => {
-            let msg = address::Address::try_from_slice(&data[..])?;
+            let msg = address::Address::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_reveal_pk" => {
-            let msg = PublicKey::try_from_slice(&data[..])?;
+            let msg = PublicKey::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_transfer" => {
-            let msg = token::Transfer::try_from_slice(&data[..])?;
+            let msg = token::Transfer::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_unbond" => {
-            let msg = pos::Unbond::try_from_slice(&data[..])?;
+            let msg = pos::Unbond::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_unjail_validator" => {
-            let msg = address::Address::try_from_slice(&data[..])?;
+            let msg = address::Address::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_update_account" => {
-            let msg = account::UpdateAccount::try_from_slice(&data[..])?;
+            let msg = account::UpdateAccount::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_update_steward_commission" => {
-            let msg = pgf::UpdateStewardCommission::try_from_slice(&data[..])?;
+            let msg = pgf::UpdateStewardCommission::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_vote_proposal" => {
-            let msg = governance::VoteProposalData::try_from_slice(&data[..])?;
+            let msg = governance::VoteProposalData::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
         "tx_withdraw" => {
-            let msg = pos::Withdraw::try_from_slice(&data[..])?;
+            let msg = pos::Withdraw::try_from_slice(&data[..]).expect(&parse_error_message(tx_type));
             let value = json!(msg);
             Some((tx_type.clone(), value))
         }
@@ -284,4 +284,8 @@ fn parse_tx_to_message(
     };
 
     Ok(parsed_message)
+}
+
+fn parse_error_message(tx_type: &str) -> String {
+    format!("failed to parse to {}", tx_type)
 }
