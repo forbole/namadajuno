@@ -110,7 +110,7 @@ async fn process_tx(
     raw_tx: Vec<u8>,
 ) -> Result<(), Error> {
     let namada_tx: NamadaTx =
-        NamadaTx::try_from(raw_tx.as_slice()).map_err(|_| Error::InvalidTxData)?;
+        NamadaTx::try_from(raw_tx.as_slice()).map_err(|_| Error::InvalidTxData("failed to parse raw transaction".into()))?;
 
     let tx_type = match namada_tx.header.tx_type {
         TxType::Raw => "raw",

@@ -7,8 +7,8 @@ use tendermint_rpc::Error as TRpcError;
 
 #[derive(Debug, ThisError)]
 pub enum Error {
-    #[error("Invalid Transaction data")]
-    InvalidTxData,
+    #[error("Invalid Transaction data, reason: {0}")]
+    InvalidTxData(String),
     
     #[error("Tendermint error: {0}")]
     TendermintError(#[from] TError),
