@@ -31,8 +31,7 @@ impl Node {
         let block_results = self
             .rpc_client
             .block_results(Height::try_from(height).unwrap())
-            .await
-            .unwrap();
+            .await?;
         Ok(block_results)
     }
 

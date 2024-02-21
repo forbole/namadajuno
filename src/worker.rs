@@ -1,4 +1,5 @@
 use async_channel::Receiver;
+use async_channel::Sender;
 use tokio::task::JoinHandle;
 use tracing::info;
 
@@ -18,6 +19,7 @@ use crate::Error;
 
 #[derive(Clone)]
 pub struct Context {
+    tx: Sender<u64>,
     rx: Receiver<u64>,
     node: node::Node,
     db: database::Database,
@@ -26,12 +28,14 @@ pub struct Context {
 
 impl Context {
     pub fn new(
+        tx: Sender<u64>,
         rx: Receiver<u64>,
         node: node::Node,
         db: database::Database,
         checksums_map: std::collections::HashMap<String, String>,
     ) -> Self {
         Context {
+            tx,
             rx,
             node,
             db,
@@ -44,7 +48,14 @@ pub fn start(ctx: Context) -> JoinHandle<Result<(), Error>> {
     tokio::spawn(async move {
         loop {
             let height = ctx.rx.recv().await?;
-            process_block(ctx.clone(), height).await?;
+            match process_block(ctx.clone(), height).await {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::error!("Failed to processing block {}: {}", height, e);
+                    tracing::info!("Reenqueuing block {}", height);
+                    ctx.tx.send(height).await?;
+                }
+            }
         }
     })
 }

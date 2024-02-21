@@ -59,7 +59,7 @@ async fn start(config: config::Config) -> Result<(), Error> {
     let (tx, rx): (Sender<u64>, Receiver<u64>) = async_channel::bounded(CHANNEL_SIZE);
 
     // Setup worker context
-    let ctx = worker::Context::new(rx, node.clone(), db.clone(), utils::load_checksums()?);
+    let ctx = worker::Context::new(tx.clone(), rx, node.clone(), db.clone(), utils::load_checksums()?);
 
     // Start workers
     let mut workers: Vec<JoinHandle<Result<(), Error>>> = vec![]; // Array of workers
