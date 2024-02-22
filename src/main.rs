@@ -64,13 +64,16 @@ async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
     // Enqueue missing blocks
     let missing_blocks_handler =
         enqueue_blocks(tx.clone(), start_height, current_height, shutdown.clone());
-    missing_blocks_handler.await??;
 
     // Enqueue new blocks
+    let mut new_blocks_handler = None;
     if config.parsing.listen_new_blocks {
-        let new_blocks_handler =
-            enqueue_new_blocks(tx.clone(), current_height, node.clone(), shutdown.clone());
-        new_blocks_handler.await??;
+        new_blocks_handler = Some(enqueue_new_blocks(
+            tx.clone(),
+            current_height,
+            node.clone(),
+            shutdown.clone(),
+        ));
     }
 
     // Setup worker context
@@ -85,6 +88,12 @@ async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
 
     // Start workers
     worker::start(ctx).await?;
+
+    // Wait for block handlers to finish
+    missing_blocks_handler.await??;
+    if let Some(new_blocks_handler) = new_blocks_handler {
+        new_blocks_handler.await??;
+    }
 
     Ok(())
 }

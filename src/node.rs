@@ -64,12 +64,12 @@ impl Node {
 
         let mut validator_infos = vec![];
         for v in validators {
-            let state = rpc::get_validator_state(&self.rpc_client.clone(), &v, Some(epoch)).await?;
-            let stake = rpc::get_validator_stake(&self.rpc_client.clone(), epoch, &v).await?;
-            let commission_rate =
-                rpc::query_commission_rate(&self.rpc_client.clone(), &v, Some(epoch)).await?;
-
-            validator_infos.push((v, state, stake, commission_rate));
+            let (state, stake, commission_rate) = tokio::join!(
+                rpc::get_validator_state(&self.rpc_client, &v, Some(epoch)),
+                rpc::get_validator_stake(&self.rpc_client, epoch, &v),
+                rpc::query_commission_rate(&self.rpc_client, &v, Some(epoch)),
+            );
+            validator_infos.push((v, state?, stake?, commission_rate?));
         }
 
         Ok(validator_infos)
