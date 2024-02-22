@@ -1,6 +1,6 @@
 use async_channel::Receiver;
 use async_channel::Sender;
-use tokio::task::JoinHandle;
+use std::sync::Arc;
 use tracing::info;
 
 use namada_sdk;
@@ -13,7 +13,7 @@ use tendermint::block::Commit;
 use tendermint::validator::Info as ValidatorInfo;
 
 use crate::database;
-use crate::node;
+use crate::node::Node;
 use crate::utils;
 use crate::Error;
 
@@ -21,7 +21,7 @@ use crate::Error;
 pub struct Context {
     tx: Sender<u64>,
     rx: Receiver<u64>,
-    node: node::Node,
+    node: Node,
     db: database::Database,
     checksums_map: std::collections::HashMap<String, String>,
 }
@@ -30,7 +30,7 @@ impl Context {
     pub fn new(
         tx: Sender<u64>,
         rx: Receiver<u64>,
-        node: node::Node,
+        node: Node,
         db: database::Database,
         checksums_map: std::collections::HashMap<String, String>,
     ) -> Self {
@@ -44,28 +44,26 @@ impl Context {
     }
 }
 
-pub fn start(ctx: Context) -> JoinHandle<Result<(), Error>> {
-    tokio::spawn(async move {
-        loop {
-            let height = ctx.rx.recv().await?;
-            match process_block(ctx.clone(), height).await {
-                Ok(_) => {}
-                Err(e) => {
-                    tracing::error!("Failed to processing block {}: {}", height, e);
-                    tracing::info!("Reenqueuing block {}", height);
-                    ctx.tx.send(height).await?;
-                }
+pub async fn start(ctx: Arc<Context>) -> Result<(), Error> {
+    loop {
+        let height = ctx.rx.recv().await?;
+        match process_block(&ctx, height).await {
+            Ok(_) => {}
+            Err(e) => {
+                tracing::error!("Failed to processing block {}: {}", height, e);
+                tracing::info!("Reenqueuing block {}", height);
+                ctx.tx.send(height).await?;
             }
         }
-    })
+    }
 }
 
-async fn process_block(ctx: Context, height: u64) -> Result<(), Error> {
+async fn process_block(ctx: &Context, height: u64) -> Result<(), Error> {
     // Query the node
     let (tm_block_response, tm_block_results_response, tm_validators_response) = tokio::join!(
         ctx.node.block(height),
         ctx.node.block_results(height),
-        ctx.node.validators(height)
+        ctx.node.validators(height),
     );
 
     let tm_block = tm_block_response?.block;

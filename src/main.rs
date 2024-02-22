@@ -11,7 +11,7 @@ use async_channel::Sender;
 use futures::stream::StreamExt;
 use futures_util::pin_mut;
 use futures_util::Stream;
-use tokio::task::JoinHandle;
+use tokio::task::{JoinSet, JoinHandle};
 
 use error::Error;
 use tendermint_rpc::HttpClient;
@@ -41,14 +41,15 @@ async fn main() -> Result<(), Error> {
         .with(env_filter);
     tracing::subscriber::set_global_default(subscriber).expect("Could not set global logger");
 
-    start(config).await?;
-    Ok(())
-}
-
-async fn start(config: config::Config) -> Result<(), Error> {
     // Build the client
     let client = HttpClient::new(config.node.config.rpc.address.as_ref()).unwrap();
     let node = node::Node::new(client.clone());
+
+    start(config, node).await?;
+    Ok(())
+}
+
+async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
     let db: database::Database = database::Database::new(&config.database).await?;
 
     // Get start height and current height
@@ -59,13 +60,17 @@ async fn start(config: config::Config) -> Result<(), Error> {
     let (tx, rx): (Sender<u64>, Receiver<u64>) = async_channel::bounded(CHANNEL_SIZE);
 
     // Setup worker context
-    let ctx = worker::Context::new(tx.clone(), rx, node.clone(), db.clone(), utils::load_checksums()?);
-
+    let ctx = Arc::new(worker::Context::new(
+        tx.clone(),
+        rx,
+        node.clone(),
+        db.clone(),
+        utils::load_checksums()?,
+    ));
     // Start workers
-    let mut workers: Vec<JoinHandle<Result<(), Error>>> = vec![]; // Array of workers
+    let mut workers: JoinSet<Result<(), Error>> = JoinSet::new(); // Array of workers
     for _ in 0..config.parsing.workers {
-        let worker = worker::start(ctx.clone());
-        workers.push(worker);
+        workers.spawn(worker::start(ctx.clone()));
     }
 
     // Enqueue missing blocks
@@ -74,8 +79,17 @@ async fn start(config: config::Config) -> Result<(), Error> {
     missing_blocks_handler.await??;
 
     // Enqueue new blocks
-    let new_blocks_handler = enqueue_new_blocks(tx, current_height, node.clone(), shutdown.clone());
-    new_blocks_handler.await??;
+    if config.parsing.listen_new_blocks {
+        let new_blocks_handler =
+            enqueue_new_blocks(tx, current_height, node.clone(), shutdown.clone());
+        new_blocks_handler.await??;
+    }
+
+    // Wait for workers to finish
+    while let Some(worker) = workers.join_next().await {
+        worker??;
+    }
+    
 
     Ok(())
 }
