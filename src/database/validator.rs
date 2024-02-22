@@ -23,6 +23,10 @@ pub struct Validators(Vec<Validator>);
 
 impl Validators {
     pub async fn save(&self, db: &Database) -> Result<(), Error> {
+        if self.0.is_empty() {
+            return Ok(());
+        }
+
         let mut builder: QueryBuilder<Postgres> =
             QueryBuilder::new("INSERT INTO validator (consensus_address, consensus_pubkey)");
 
@@ -73,6 +77,10 @@ impl From<Vec<ValidatorInfo>> for ValidatorInfos {
 
 impl ValidatorInfos {
     pub async fn save(&self, db: &Database) -> Result<(), Error> {
+        if self.0.is_empty() {
+            return Ok(());
+        }
+
         let mut builder: QueryBuilder<Postgres> = QueryBuilder::new(
             "INSERT INTO validator_info (consensus_address, max_change_rate, height)",
         );
@@ -124,6 +132,10 @@ impl From<Vec<ValidatorVotingPower>> for ValidatorVotingPowers {
 
 impl ValidatorVotingPowers {
     pub async fn save(&self, db: &Database) -> Result<(), Error> {
+        if self.0.is_empty() {
+            return Ok(());
+        }
+
         let mut builder: QueryBuilder<Postgres> = QueryBuilder::new(
             "INSERT INTO validator_voting_power (validator_address, voting_power, height)",
         );
@@ -176,6 +188,10 @@ impl From<Vec<ValidatorCommission>> for ValidatorCommissions {
 
 impl ValidatorCommissions {
     pub async fn save(&self, db: &Database) -> Result<(), Error> {
+        if self.0.is_empty() {
+            return Ok(());
+        }
+
         let mut builder: QueryBuilder<Postgres> = QueryBuilder::new(
             "INSERT INTO validator_commission (validator_address, commission, height)",
         );
@@ -229,6 +245,10 @@ impl From<Vec<ValidatorStatus>> for ValidatorStatuses {
 
 impl ValidatorStatuses {
     pub async fn save(&self, db: &Database) -> Result<(), Error> {
+        if self.0.is_empty() {
+            return Ok(());
+        }
+        
         let mut builder: QueryBuilder<Postgres> = QueryBuilder::new(
             "INSERT INTO validator_status (validator_address, status, jailed, height)",
         );
