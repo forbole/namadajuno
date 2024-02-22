@@ -212,11 +212,7 @@ pub struct ValidatorStatus {
 }
 
 impl ValidatorStatus {
-    pub fn new(
-        validator_address: String,
-        state: ValidatorState,
-        height: u64,
-    ) -> Self {
+    pub fn new(validator_address: String, state: ValidatorState, height: u64) -> Self {
         ValidatorStatus {
             validator_address,
             status: state as i64,

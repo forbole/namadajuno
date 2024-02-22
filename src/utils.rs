@@ -1,11 +1,11 @@
+pub use namada_sdk::types::string_encoding::ADDRESS_HRP;
+pub use namada_sdk::types::string_encoding::COMMON_PK_HRP;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::{env, fs};
 use subtle_encoding::{bech32, hex};
 use tendermint::account::Id as TmAccountId;
 use tendermint::validator::Info as ValidatorIfo;
-pub use namada_sdk::types::string_encoding::ADDRESS_HRP;
-pub use namada_sdk::types::string_encoding::COMMON_PK_HRP;
 
 const CHECKSUMS_FILE_PATH_ENV: &str = "CHECKSUMS_FILE_PATH";
 const CHECKSUMS_REMOTE_URL_ENV: &str = "CHECKSUMS_REMOTE_URL";
@@ -44,10 +44,7 @@ pub fn load_checksums() -> Result<HashMap<String, String>, crate::Error> {
 }
 
 pub fn addr_to_bech32(addr: TmAccountId) -> String {
-    bech32::encode(
-        ADDRESS_HRP,
-        addr.as_bytes(),
-    )
+    bech32::encode(ADDRESS_HRP, addr.as_bytes())
 }
 
 pub fn find_validator(validators: Vec<ValidatorIfo>, address: TmAccountId) -> Option<ValidatorIfo> {

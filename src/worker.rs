@@ -13,10 +13,10 @@ use tendermint::block::Commit;
 use tendermint::validator::Info as ValidatorInfo;
 
 use crate::database;
-use crate::node::Node;
 use crate::modules::BlockHandle;
 use crate::modules::StakingModule;
 use crate::node;
+use crate::node::Node;
 use crate::utils;
 use crate::Error;
 

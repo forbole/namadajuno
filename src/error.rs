@@ -1,17 +1,17 @@
-use std::error::Error as StdError;
-use std::num::ParseIntError;
-use thiserror::Error as ThisError;
-use tokio::task::JoinError;
-use tendermint::Error as TError;
-use tendermint_rpc::Error as TRpcError;
 use namada_sdk::error::Error as NamadaError;
 use namada_sdk::types::string_encoding::DecodeError as StringDecodeError;
+use std::error::Error as StdError;
+use std::num::ParseIntError;
+use tendermint::Error as TError;
+use tendermint_rpc::Error as TRpcError;
+use thiserror::Error as ThisError;
+use tokio::task::JoinError;
 
 #[derive(Debug, ThisError)]
 pub enum Error {
     #[error("Invalid Transaction data, reason: {0}")]
     InvalidTxData(String),
-    
+
     #[error("Tendermint error: {0}")]
     TendermintError(#[from] TError),
     #[error("Tendermint rpc_error: {0}")]

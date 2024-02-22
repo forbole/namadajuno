@@ -1,11 +1,11 @@
-use namada_sdk::proof_of_stake::types::{ValidatorState, CommissionPair};
+use namada_sdk::proof_of_stake::types::{CommissionPair, ValidatorState};
 use tendermint::block::Height;
 use tendermint_rpc::{endpoint, Client, HttpClient, Paging};
 
 use namada_sdk::rpc;
 use namada_sdk::state::Epoch;
-use namada_sdk::types::token::Amount;
 use namada_sdk::types::address::Address;
+use namada_sdk::types::token::Amount;
 
 use crate::error::Error;
 
@@ -53,7 +53,18 @@ impl Node {
         Ok(validator_set)
     }
 
-    pub async fn validator_infos(&self, epoch: Epoch) -> Result<Vec<(Address, Option<ValidatorState>, Amount, Option<CommissionPair>)>, Error> {
+    pub async fn validator_infos(
+        &self,
+        epoch: Epoch,
+    ) -> Result<
+        Vec<(
+            Address,
+            Option<ValidatorState>,
+            Amount,
+            Option<CommissionPair>,
+        )>,
+        Error,
+    > {
         let validators = rpc::get_all_validators(&self.rpc_client.clone(), epoch).await?;
 
         let mut validator_infos = vec![];
@@ -63,7 +74,6 @@ impl Node {
             let commission_rate =
                 rpc::query_commission_rate(&self.rpc_client.clone(), &v, Some(epoch)).await?;
 
-           
             validator_infos.push((v, state, stake, commission_rate));
         }
 
