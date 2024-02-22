@@ -1,14 +1,6 @@
 table:
   name: validator_status
   schema: public
-object_relationships:
-- name: validator
-  using:
-    manual_configuration:
-      remote_table: validator
-      insertion_order: null
-      column_mapping:
-        validator_address: consensus_address
 select_permissions:
 - permission:
     allow_aggregations: true
