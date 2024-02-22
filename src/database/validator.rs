@@ -83,7 +83,7 @@ impl ValidatorInfos {
                 .push_bind(v.height);
         });
         builder.push(
-            r#"
+            r#"\
         ON CONFLICT DO UPDATE 
             SET max_change_rate = EXCLUDED.max_change_rate, 
                 height = EXCLUDED.height
@@ -135,7 +135,7 @@ impl ValidatorVotingPowers {
                 .push_bind(v.height);
         });
         builder.push(
-            r#"
+            r#"\
         ON CONFLICT DO UPDATE 
             SET voting_power = EXCLUDED.voting_power,
                 height = EXCLUDED.height
@@ -188,7 +188,7 @@ impl ValidatorCommissions {
                 .push_bind(v.height);
         });
         builder.push(
-            r#"
+            r#"\
         ON CONFLICT DO UPDATE 
             SET commission_rate = EXCLUDED.commission_rate, 
                 height = EXCLUDED.height
@@ -243,7 +243,7 @@ impl ValidatorStatuses {
                 .push_bind(v.height);
         });
         builder.push(
-            r#"
+            r#"\
         ON CONFLICT DO UPDATE 
             SET status = EXCLUDED.status, 
                 jailed = EXCLUDED.jailed,

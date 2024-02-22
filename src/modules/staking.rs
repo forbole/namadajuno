@@ -1,5 +1,4 @@
 use namada_sdk::state::Epoch;
-use std::mem;
 use std::sync::Arc;
 use tendermint::block::Block;
 use tokio::sync::Mutex;
