@@ -61,6 +61,18 @@ async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
     let shutdown = Arc::new(AtomicBool::new(false));
     let (tx, rx): (Sender<u64>, Receiver<u64>) = async_channel::bounded(CHANNEL_SIZE);
 
+    // Enqueue missing blocks
+    let missing_blocks_handler =
+        enqueue_blocks(tx.clone(), start_height, current_height, shutdown.clone());
+    missing_blocks_handler.await??;
+
+    // Enqueue new blocks
+    if config.parsing.listen_new_blocks {
+        let new_blocks_handler =
+            enqueue_new_blocks(tx.clone(), current_height, node.clone(), shutdown.clone());
+        new_blocks_handler.await??;
+    }
+
     // Setup worker context
     let ctx = Arc::new(worker::Context::new(
         tx.clone(),
@@ -72,27 +84,7 @@ async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
     ));
 
     // Start workers
-    let mut workers: JoinSet<Result<(), Error>> = JoinSet::new(); // Array of workers
-    for _ in 0..config.parsing.workers {
-        workers.spawn(worker::start(ctx.clone()));
-    }
-
-    // Enqueue missing blocks
-    let missing_blocks_handler =
-        enqueue_blocks(tx.clone(), start_height, current_height, shutdown.clone());
-    missing_blocks_handler.await??;
-
-    // Enqueue new blocks
-    if config.parsing.listen_new_blocks {
-        let new_blocks_handler =
-            enqueue_new_blocks(tx, current_height, node.clone(), shutdown.clone());
-        new_blocks_handler.await??;
-    }
-
-    // Wait for workers to finish
-    while let Some(worker) = workers.join_next().await {
-        worker??;
-    }
+    worker::start(ctx).await?;
 
     Ok(())
 }
