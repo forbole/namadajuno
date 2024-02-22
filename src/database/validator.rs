@@ -83,11 +83,10 @@ impl ValidatorInfos {
                 .push_bind(v.height);
         });
         builder.push(
-            r#"\
-        ON CONFLICT DO UPDATE 
-            SET max_change_rate = EXCLUDED.max_change_rate, 
-                height = EXCLUDED.height
-        WHERE validator_info.height <= EXCLUDED.height"#,
+            "ON CONFLICT DO UPDATE \
+            SET max_change_rate = EXCLUDED.max_change_rate, \
+                height = EXCLUDED.height \
+        WHERE validator_info.height <= EXCLUDED.height",
         );
 
         let query = builder.build();
@@ -135,12 +134,11 @@ impl ValidatorVotingPowers {
                 .push_bind(v.height);
         });
         builder.push(
-            r#"\
-        ON CONFLICT DO UPDATE 
-            SET voting_power = EXCLUDED.voting_power,
-                height = EXCLUDED.height
+            "ON CONFLICT DO UPDATE \
+            SET voting_power = EXCLUDED.voting_power,\
+                height = EXCLUDED.height \
         WHERE validator_voting_power.height <= EXCLUDED.height
-            "#,
+            ",
         );
 
         let query = builder.build();
@@ -188,11 +186,10 @@ impl ValidatorCommissions {
                 .push_bind(v.height);
         });
         builder.push(
-            r#"\
-        ON CONFLICT DO UPDATE 
-            SET commission_rate = EXCLUDED.commission_rate, 
-                height = EXCLUDED.height
-        WHERE validator_commission.height <= EXCLUDED.height"#,
+            "ON CONFLICT DO UPDATE \
+            SET commission_rate = EXCLUDED.commission_rate, \
+                height = EXCLUDED.height \
+        WHERE validator_commission.height <= EXCLUDED.height",
         );
 
         let query = builder.build();
@@ -243,12 +240,11 @@ impl ValidatorStatuses {
                 .push_bind(v.height);
         });
         builder.push(
-            r#"\
-        ON CONFLICT DO UPDATE 
-            SET status = EXCLUDED.status, 
-                jailed = EXCLUDED.jailed,
-                height = EXCLUDED.height
-        WHERE validator_status.height <= EXCLUDED.height"#,
+            "ON CONFLICT DO UPDATE \
+            SET status = EXCLUDED.status, \
+                jailed = EXCLUDED.jailed, \
+                height = EXCLUDED.height \
+        WHERE validator_status.height <= EXCLUDED.height",
         );
 
         let query = builder.build();
