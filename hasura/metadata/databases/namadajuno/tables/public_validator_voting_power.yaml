@@ -1,0 +1,28 @@
+table:
+  name: validator_voting_power
+  schema: public
+object_relationships:
+- name: block
+  using:
+    manual_configuration:
+      remote_table: block
+      insertion_order: null
+      column_mapping:
+        height: height
+- name: validator
+  using:
+    manual_configuration:
+      remote_table: validator
+      insertion_order: null
+      column_mapping:
+        validator_address: consensus_address
+select_permissions:
+- permission:
+    allow_aggregations: true
+    columns:
+    - validator_address
+    - voting_power
+    - height
+    filter: {}
+    limit: 100
+  role: anonymous
