@@ -12,7 +12,7 @@ use async_channel::Sender;
 use futures::stream::StreamExt;
 use futures_util::pin_mut;
 use futures_util::Stream;
-use tokio::task::{JoinHandle, JoinSet};
+use tokio::task::JoinHandle;
 
 use error::Error;
 use tendermint_rpc::HttpClient;

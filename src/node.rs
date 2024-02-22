@@ -24,11 +24,6 @@ impl Node {
         Ok(status.sync_info.latest_block_height.value())
     }
 
-    pub async fn consensus_state(&self) -> Result<endpoint::consensus_state::Response, Error> {
-        let state: endpoint::consensus_state::Response = self.rpc_client.consensus_state().await?;
-        Ok(state)
-    }
-
     pub async fn block(&self, height: u64) -> Result<endpoint::block::Response, Error> {
         let block = self.rpc_client.block(Height::try_from(height)?).await?;
         Ok(block)

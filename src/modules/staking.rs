@@ -1,4 +1,3 @@
-use namada_sdk::state::Epoch;
 use tendermint::block::Block;
 
 use crate::database::{self, Database};
@@ -10,7 +9,6 @@ use crate::Error;
 pub struct StakingModule {
     node: Node,
     db: Database,
-    epoch: Option<Epoch>,
 }
 
 impl StakingModule {
@@ -18,7 +16,6 @@ impl StakingModule {
         Self {
             node,
             db,
-            epoch: None,
         }
     }
 
