@@ -205,7 +205,7 @@ impl ValidatorCommissions {
         });
         builder.push(
             "ON CONFLICT (validator_address) DO UPDATE \
-            SET commission_rate = EXCLUDED.commission_rate, \
+            SET commission = EXCLUDED.commission, \
                 height = EXCLUDED.height \
         WHERE validator_commission.height <= EXCLUDED.height",
         );
