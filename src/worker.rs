@@ -93,7 +93,7 @@ async fn process_block(ctx: &Context, height: u64) -> Result<(), Error> {
     block.save(&ctx.db).await?;
 
     // Handle block handle modules
-    for module in ctx.modules.iter() {
+    for module in ctx.modules.clone().iter_mut() {
         module.handle_block(tm_block.clone()).await?;
     }
 

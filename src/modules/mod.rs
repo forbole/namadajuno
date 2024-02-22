@@ -5,5 +5,5 @@ mod staking;
 pub use staking::StakingModule;
 
 pub trait BlockHandle {
-    async fn handle_block(&self, block: Block) -> Result<(), Error>;
+    async fn handle_block(&mut self, block: Block) -> Result<(), Error>;
 }

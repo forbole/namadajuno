@@ -1,4 +1,8 @@
+use namada_sdk::state::Epoch;
+use std::mem;
+use std::sync::Arc;
 use tendermint::block::Block;
+use tokio::sync::Mutex;
 
 use crate::database::{self, Database};
 use crate::modules::BlockHandle;
@@ -9,6 +13,7 @@ use crate::Error;
 pub struct StakingModule {
     node: Node,
     db: Database,
+    epoch: Arc<Mutex<Option<Epoch>>>,
 }
 
 impl StakingModule {
@@ -16,11 +21,11 @@ impl StakingModule {
         Self {
             node,
             db,
+            epoch: Arc::new(Mutex::new(None)),
         }
     }
 
-    async fn update_validators(&self, height: u64) -> Result<(), Error> {
-        let epoch = self.node.clone().epoch(height).await?;
+    async fn update_validators(&self, height: u64, epoch: Epoch) -> Result<(), Error> {
         let validator_infos = self.node.validator_infos(epoch).await?;
 
         // Save infos
@@ -90,10 +95,18 @@ impl StakingModule {
 }
 
 impl BlockHandle for StakingModule {
-    async fn handle_block(&self, block: Block) -> Result<(), Error> {
+    async fn handle_block(&mut self, block: Block) -> Result<(), Error> {
         // handle block
         let height = block.header.height;
-        self.update_validators(height.into()).await?;
+        let epoch = self.node.epoch(height.into()).await?;
+        {
+            let mut current_epoch = self.epoch.lock().await;
+            if Some(epoch) != *current_epoch {
+                *current_epoch = Some(epoch);
+            }
+        }
+
+        self.update_validators(height.into(), epoch).await?;
 
         Ok(())
     }
