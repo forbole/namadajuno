@@ -14,6 +14,9 @@ use tendermint::validator::Info as ValidatorInfo;
 
 use crate::database;
 use crate::node::Node;
+use crate::modules::BlockHandle;
+use crate::modules::StakingModule;
+use crate::node;
 use crate::utils;
 use crate::Error;
 
@@ -24,6 +27,7 @@ pub struct Context {
     node: Node,
     db: database::Database,
     checksums_map: std::collections::HashMap<String, String>,
+    modules: Vec<StakingModule>,
 }
 
 impl Context {
@@ -33,6 +37,7 @@ impl Context {
         node: Node,
         db: database::Database,
         checksums_map: std::collections::HashMap<String, String>,
+        modules: Vec<StakingModule>,
     ) -> Self {
         Context {
             tx,
@@ -40,6 +45,7 @@ impl Context {
             node,
             db,
             checksums_map,
+            modules,
         }
     }
 }
@@ -87,14 +93,19 @@ async fn process_block(ctx: &Context, height: u64) -> Result<(), Error> {
     let block = database::Block::from_tm_block(tm_block.clone(), txs_results.clone());
     block.save(&ctx.db).await?;
 
+    // Handle block handle modules
+    for module in ctx.modules.iter() {
+        module.handle_block(tm_block.clone()).await?;
+    }
+
     // Save commits
     if let Some(commit) = tm_block.last_commit {
-        process_commit(ctx.clone(), height, commit, tm_validators).await?;
+        process_commit(ctx, height, commit, tm_validators).await?;
     }
 
     // Save transactions
     for (i, tx) in tm_block.data.iter().enumerate() {
-        process_tx(ctx.clone(), height, txs_results[i].clone(), tx.clone()).await?;
+        process_tx(ctx, height, txs_results[i].clone(), tx.clone()).await?;
     }
 
     info!("Processed {}", height);
@@ -102,13 +113,13 @@ async fn process_block(ctx: &Context, height: u64) -> Result<(), Error> {
 }
 
 async fn process_tx(
-    ctx: Context,
+    ctx: &Context,
     height: u64,
     tx_results: ExecTxResult,
     raw_tx: Vec<u8>,
 ) -> Result<(), Error> {
-    let namada_tx: NamadaTx =
-        NamadaTx::try_from(raw_tx.as_slice()).map_err(|_| Error::InvalidTxData("failed to parse raw transaction".into()))?;
+    let namada_tx: NamadaTx = NamadaTx::try_from(raw_tx.as_slice())
+        .map_err(|_| Error::InvalidTxData("failed to parse raw transaction".into()))?;
 
     let tx_type = match namada_tx.header.tx_type {
         TxType::Raw => "raw",
@@ -128,7 +139,6 @@ async fn process_tx(
         tx_results.gas_used,
         tx_results.log,
     );
-
     tx.save(&ctx.db).await?;
 
     // Save message
@@ -141,7 +151,7 @@ async fn process_tx(
 }
 
 async fn process_commit(
-    ctx: Context,
+    ctx: &Context,
     height: u64,
     commit: Commit,
     validators: Vec<ValidatorInfo>,

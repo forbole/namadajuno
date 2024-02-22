@@ -4,6 +4,8 @@ use thiserror::Error as ThisError;
 use tokio::task::JoinError;
 use tendermint::Error as TError;
 use tendermint_rpc::Error as TRpcError;
+use namada_sdk::error::Error as NamadaError;
+use namada_sdk::types::string_encoding::DecodeError as StringDecodeError;
 
 #[derive(Debug, ThisError)]
 pub enum Error {
@@ -14,6 +16,11 @@ pub enum Error {
     TendermintError(#[from] TError),
     #[error("Tendermint rpc_error: {0}")]
     TendermintRpcError(#[from] TRpcError),
+
+    #[error("Namada error: {0}")]
+    NamadaError(#[from] NamadaError),
+    #[error("String decode error: {0}")]
+    EncodingError(#[from] StringDecodeError),
 
     #[error("Configuration error: {0}")]
     IO(#[from] std::io::Error),
@@ -42,4 +49,7 @@ pub enum Error {
     Generic(Box<dyn StdError + Send>),
     #[error("ParseInt error")]
     ParseIntError(#[from] ParseIntError),
+
+    #[error("Epoch not found")]
+    EpochNotFound,
 }

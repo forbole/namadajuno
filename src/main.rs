@@ -1,3 +1,4 @@
+use modules::StakingModule;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -11,7 +12,7 @@ use async_channel::Sender;
 use futures::stream::StreamExt;
 use futures_util::pin_mut;
 use futures_util::Stream;
-use tokio::task::{JoinSet, JoinHandle};
+use tokio::task::{JoinHandle, JoinSet};
 
 use error::Error;
 use tendermint_rpc::HttpClient;
@@ -19,6 +20,7 @@ use tendermint_rpc::HttpClient;
 mod config;
 mod database;
 mod error;
+mod modules;
 mod node;
 mod utils;
 mod worker;
@@ -66,7 +68,9 @@ async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
         node.clone(),
         db.clone(),
         utils::load_checksums()?,
+        vec![StakingModule::new(node.clone(), db.clone())],
     ));
+
     // Start workers
     let mut workers: JoinSet<Result<(), Error>> = JoinSet::new(); // Array of workers
     for _ in 0..config.parsing.workers {
@@ -89,7 +93,6 @@ async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
     while let Some(worker) = workers.join_next().await {
         worker??;
     }
-    
 
     Ok(())
 }

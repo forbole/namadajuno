@@ -60,3 +60,11 @@ CREATE TABLE message
 );
 CREATE INDEX message_transaction_hash_index ON message (transaction_hash);
 CREATE INDEX message_type_index ON message (type);
+
+CREATE TABLE validator_voting_power
+(
+    height            BIGINT NOT NULL,
+    validator_address TEXT   NOT NULL,
+    voting_power      BIGINT NOT NULL,
+    UNIQUE (height, validator_address)
+);

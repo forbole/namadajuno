@@ -1,10 +1,17 @@
-use crate::error::Error;
+use namada_sdk::proof_of_stake::types::{ValidatorState, CommissionPair};
 use tendermint::block::Height;
 use tendermint_rpc::{endpoint, Client, HttpClient, Paging};
 
+use namada_sdk::rpc;
+use namada_sdk::state::Epoch;
+use namada_sdk::types::token::Amount;
+use namada_sdk::types::address::Address;
+
+use crate::error::Error;
+
 #[derive(Clone)]
 pub struct Node {
-    rpc_client: HttpClient,
+    pub rpc_client: HttpClient,
 }
 
 impl Node {
@@ -27,7 +34,10 @@ impl Node {
         Ok(block)
     }
 
-    pub async fn block_results(&self, height: u64) -> Result<endpoint::block_results::Response, Error> {
+    pub async fn block_results(
+        &self,
+        height: u64,
+    ) -> Result<endpoint::block_results::Response, Error> {
         let block_results = self
             .rpc_client
             .block_results(Height::try_from(height).unwrap())
@@ -41,5 +51,29 @@ impl Node {
             .validators(Height::try_from(height)?, Paging::All)
             .await?;
         Ok(validator_set)
+    }
+
+    pub async fn validator_infos(&self, epoch: Epoch) -> Result<Vec<(Address, Option<ValidatorState>, Amount, Option<CommissionPair>)>, Error> {
+        let validators = rpc::get_all_validators(&self.rpc_client.clone(), epoch).await?;
+
+        let mut validator_infos = vec![];
+        for v in validators {
+            let state = rpc::get_validator_state(&self.rpc_client.clone(), &v, Some(epoch)).await?;
+            let stake = rpc::get_validator_stake(&self.rpc_client.clone(), epoch, &v).await?;
+            let commission_rate =
+                rpc::query_commission_rate(&self.rpc_client.clone(), &v, Some(epoch)).await?;
+
+           
+            validator_infos.push((v, state, stake, commission_rate));
+        }
+
+        Ok(validator_infos)
+    }
+
+    pub async fn epoch(&self, height: u64) -> Result<Epoch, Error> {
+        let epoch = rpc::query_epoch_at_height(&self.rpc_client, height.into())
+            .await?
+            .ok_or(Error::EpochNotFound)?;
+        Ok(epoch)
     }
 }

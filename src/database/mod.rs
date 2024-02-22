@@ -5,8 +5,11 @@ use crate::config::DBConfig;
 use crate::Error;
 
 mod validator;
-pub use validator::Validator;
-pub use validator::Validators;
+pub use validator::{Validator, Validators};
+pub use validator::{
+    ValidatorCommission, ValidatorCommissions, ValidatorInfo, ValidatorInfos, ValidatorVotingPower,
+    ValidatorVotingPowers, ValidatorStatus, ValidatorStatuses,
+};
 
 mod block;
 pub use block::Block;
@@ -23,7 +26,7 @@ pub use tx::Tx;
 
 #[derive(Clone)]
 pub struct Database {
-     pool: Arc<PgPool>,
+    pool: Arc<PgPool>,
 }
 
 impl Database {
