@@ -1,4 +1,6 @@
 use sqlx::{Postgres, QueryBuilder};
+use sqlx::types::Decimal;
+use std::str::FromStr;
 
 use namada_sdk::proof_of_stake::types::ValidatorState;
 
@@ -164,7 +166,7 @@ impl ValidatorVotingPowers {
 
 pub struct ValidatorCommission {
     pub validator_address: String,
-    pub commission_rate: String,
+    pub commission_rate: Decimal,
     pub height: i64,
 }
 
@@ -172,7 +174,7 @@ impl ValidatorCommission {
     pub fn new(address: String, commission_rate: String, height: u64) -> Self {
         ValidatorCommission {
             validator_address: address,
-            commission_rate,
+            commission_rate: Decimal::from_str(&commission_rate).unwrap(),
             height: height as i64,
         }
     }
