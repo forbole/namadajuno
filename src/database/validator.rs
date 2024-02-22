@@ -91,7 +91,7 @@ impl ValidatorInfos {
                 .push_bind(v.height);
         });
         builder.push(
-            "ON CONFLICT DO UPDATE \
+            "ON CONFLICT (consensus_address) DO UPDATE \
             SET max_change_rate = EXCLUDED.max_change_rate, \
                 height = EXCLUDED.height \
         WHERE validator_info.height <= EXCLUDED.height",
@@ -146,7 +146,7 @@ impl ValidatorVotingPowers {
                 .push_bind(v.height);
         });
         builder.push(
-            "ON CONFLICT DO UPDATE \
+            "ON CONFLICT (validator_address) DO UPDATE \
             SET voting_power = EXCLUDED.voting_power,\
                 height = EXCLUDED.height \
         WHERE validator_voting_power.height <= EXCLUDED.height
@@ -202,7 +202,7 @@ impl ValidatorCommissions {
                 .push_bind(v.height);
         });
         builder.push(
-            "ON CONFLICT DO UPDATE \
+            "ON CONFLICT (validator_address) DO UPDATE \
             SET commission_rate = EXCLUDED.commission_rate, \
                 height = EXCLUDED.height \
         WHERE validator_commission.height <= EXCLUDED.height",
@@ -248,7 +248,7 @@ impl ValidatorStatuses {
         if self.0.is_empty() {
             return Ok(());
         }
-        
+
         let mut builder: QueryBuilder<Postgres> = QueryBuilder::new(
             "INSERT INTO validator_status (validator_address, status, jailed, height)",
         );
@@ -260,7 +260,7 @@ impl ValidatorStatuses {
                 .push_bind(v.height);
         });
         builder.push(
-            "ON CONFLICT DO UPDATE \
+            "ON CONFLICT (validator_address) DO UPDATE \
             SET status = EXCLUDED.status, \
                 jailed = EXCLUDED.jailed, \
                 height = EXCLUDED.height \
