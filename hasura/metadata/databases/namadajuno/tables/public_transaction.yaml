@@ -18,6 +18,7 @@ select_permissions:
     - hash
     - height
     - success
+    - tx_type
     - memo
     - gas_wanted
     - gas_used
