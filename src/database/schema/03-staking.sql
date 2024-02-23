@@ -36,7 +36,7 @@ CREATE INDEX validator_status_height_index ON validator_status (height);
 
 CREATE TABLE validator_description
 (
-    validator_address TEXT   NOT NULL REFERENCES validator (consensus_address) PRIMARY KEY,
+    validator_address TEXT   NOT NULL PRIMARY KEY,
     avatar_url        TEXT,
     website           TEXT,
     details           TEXT,
