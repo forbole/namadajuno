@@ -348,14 +348,14 @@ impl ValidatorDescriptions {
 //--------------------------------------------------------
 
 pub struct ValidatorConsensusKey {
-    pub consensus_pub_key: String,
+    pub consensus_pubkey: String,
     pub validator_address: String,
 }
 
 impl ValidatorConsensusKey {
-    pub fn new(consensus_pub_key: String, validator_address: String) -> Self {
+    pub fn new(consensus_pubkey: String, validator_address: String) -> Self {
         ValidatorConsensusKey {
-            consensus_pub_key,
+            consensus_pubkey,
             validator_address,
         }
     }
@@ -363,7 +363,7 @@ impl ValidatorConsensusKey {
     pub async fn save(&self, db: &Database) -> Result<(), Error> {
         let query = "UPDATE validator SET validator_address = $2 WHERE consensus_pubkey = $1";
         sqlx::query(query)
-            .bind(&self.consensus_pub_key)
+            .bind(&self.consensus_pubkey)
             .bind(&self.validator_address)
             .execute(db.pool().as_ref())
             .await?;

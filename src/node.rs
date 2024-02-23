@@ -2,10 +2,10 @@ use namada_sdk::proof_of_stake::types::{CommissionPair, ValidatorMetaData, Valid
 use tendermint::block::Height;
 use tendermint_rpc::{endpoint, Client, HttpClient, Paging};
 
-use namada_sdk::types::key::common::PublicKey;
 use namada_sdk::rpc;
 use namada_sdk::state::Epoch;
 use namada_sdk::types::address::Address;
+use namada_sdk::types::key::common::PublicKey;
 use namada_sdk::types::token::Amount;
 
 use crate::error::Error;

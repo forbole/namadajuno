@@ -7,9 +7,9 @@ use crate::Error;
 mod validator;
 pub use validator::{Validator, Validators};
 pub use validator::{
-    ValidatorCommission, ValidatorCommissions, ValidatorDescription, ValidatorDescriptions,
-    ValidatorInfo, ValidatorInfos, ValidatorStatus, ValidatorStatuses, ValidatorVotingPower,
-    ValidatorVotingPowers, ValidatorConsensusKey,
+    ValidatorCommission, ValidatorCommissions, ValidatorConsensusKey, ValidatorDescription,
+    ValidatorDescriptions, ValidatorInfo, ValidatorInfos, ValidatorStatus, ValidatorStatuses,
+    ValidatorVotingPower, ValidatorVotingPowers,
 };
 
 mod block;
