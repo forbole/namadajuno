@@ -111,7 +111,7 @@ impl StakingModule {
                         height,
                     ));
                 }
-                
+
                 None
             })
             .collect::<Vec<_>>();
@@ -130,9 +130,11 @@ impl BlockHandle for StakingModule {
         let epoch = self.node.epoch(height.into()).await?;
         {
             let mut current_epoch = self.epoch.lock().await;
-            if Some(epoch) != *current_epoch {
-                *current_epoch = Some(epoch);
+            if Some(epoch) == *current_epoch {
+                return Ok(());
             }
+
+            *current_epoch = Some(epoch);
         }
 
         self.update_validators(height.into(), epoch).await?;
