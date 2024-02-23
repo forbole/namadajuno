@@ -1,4 +1,4 @@
-use namada_sdk::proof_of_stake::types::{CommissionPair, ValidatorState};
+use namada_sdk::proof_of_stake::types::{CommissionPair, ValidatorMetaData, ValidatorState};
 use tendermint::block::Height;
 use tendermint_rpc::{endpoint, Client, HttpClient, Paging};
 
@@ -51,25 +51,18 @@ impl Node {
     pub async fn validator_infos(
         &self,
         epoch: Epoch,
-    ) -> Result<
-        Vec<(
-            Address,
-            Option<ValidatorState>,
-            Amount,
-            Option<CommissionPair>,
-        )>,
-        Error,
-    > {
+    ) -> Result<Vec<(Address, Option<ValidatorState>, Amount, Option<CommissionPair>, Option<ValidatorMetaData>)>, Error> {
         let validators = rpc::get_all_validators(&self.rpc_client.clone(), epoch).await?;
 
         let mut validator_infos = vec![];
         for v in validators {
-            let (state, stake, commission_rate) = tokio::join!(
+            let (state, stake, metadata) = tokio::join!(
                 rpc::get_validator_state(&self.rpc_client, &v, Some(epoch)),
                 rpc::get_validator_stake(&self.rpc_client, epoch, &v),
-                rpc::query_commission_rate(&self.rpc_client, &v, Some(epoch)),
+                rpc::query_metadata(&self.rpc_client, &v, Some(epoch))
             );
-            validator_infos.push((v, state?, stake?, commission_rate?));
+            let (description, commission) = metadata?;
+            validator_infos.push((v, state?, stake?, commission, description));
         }
 
         Ok(validator_infos)

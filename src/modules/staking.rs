@@ -31,7 +31,7 @@ impl StakingModule {
         let validators = validator_infos
             .clone()
             .into_iter()
-            .map(|(address, _, _, commission)| {
+            .map(|(address, _, _, commission, _)| {
                 database::ValidatorInfo::new(
                     address.encode(),
                     commission
@@ -50,7 +50,7 @@ impl StakingModule {
         let validators = validator_infos
             .clone()
             .into_iter()
-            .map(|(address, _, voting_power, _)| {
+            .map(|(address, _, voting_power, _, _)| {
                 database::ValidatorVotingPower::new(
                     address.encode(),
                     voting_power.to_string().parse::<i64>().unwrap(),
@@ -66,7 +66,7 @@ impl StakingModule {
         let validators_commissions = validator_infos
             .clone()
             .into_iter()
-            .map(|(address, _, _, commission)| {
+            .map(|(address, _, _, commission, _)| {
                 database::ValidatorCommission::new(
                     address.encode(),
                     commission.unwrap().commission_rate.to_string(),
@@ -80,12 +80,30 @@ impl StakingModule {
 
         // Save statuses
         let validators_statuses = validator_infos
+            .clone()
             .into_iter()
-            .map(|(address, state, _, _)| {
+            .map(|(address, state, _, _, _)| {
                 database::ValidatorStatus::new(address.encode(), state.unwrap(), height)
             })
             .collect::<Vec<_>>();
         database::ValidatorStatuses::from(validators_statuses)
+            .save(&self.db)
+            .await?;
+
+        // Save descriptions
+        let validators_descriptions = validator_infos
+            .into_iter()
+            .map(|(address, _, _, _, description)| {
+                database::ValidatorDescription::new(
+                    address.encode(),
+                    description.clone().unwrap().avatar.unwrap_or_default(),
+                    description.clone().unwrap().website.unwrap_or_default(),
+                    description.clone().unwrap().description.unwrap_or_default(),
+                    height,
+                )
+            })
+            .collect::<Vec<_>>();
+        database::ValidatorDescriptions::from(validators_descriptions)
             .save(&self.db)
             .await?;
 

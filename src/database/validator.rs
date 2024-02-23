@@ -1,5 +1,5 @@
-use sqlx::{Postgres, QueryBuilder};
 use sqlx::types::Decimal;
+use sqlx::{Postgres, QueryBuilder};
 use std::str::FromStr;
 
 use namada_sdk::proof_of_stake::types::ValidatorState;
@@ -267,6 +267,75 @@ impl ValidatorStatuses {
                 jailed = EXCLUDED.jailed, \
                 height = EXCLUDED.height \
         WHERE validator_status.height <= EXCLUDED.height",
+        );
+
+        let query = builder.build();
+        query.execute(db.pool().as_ref()).await?;
+
+        Ok(())
+    }
+}
+
+//--------------------------------------------------------
+
+pub struct ValidatorDescription {
+    pub validator_address: String,
+    pub avatar_url: String,
+    pub website: String,
+    pub details: String,
+    pub height: i64,
+}
+
+impl ValidatorDescription {
+    pub fn new(
+        validator_address: String,
+        avatar_url: String,
+        website: String,
+        details: String,
+        height: u64,
+    ) -> Self {
+        ValidatorDescription {
+            validator_address,
+            avatar_url,
+            website,
+            details,
+            height: height as i64,
+        }
+    }
+}
+
+pub struct ValidatorDescriptions(Vec<ValidatorDescription>);
+
+impl From<Vec<ValidatorDescription>> for ValidatorDescriptions {
+    fn from(descriptions: Vec<ValidatorDescription>) -> Self {
+        ValidatorDescriptions(descriptions)
+    }
+}
+
+impl ValidatorDescriptions {
+    pub async fn save(&self, db: &Database) -> Result<(), Error> {
+        if self.0.is_empty() {
+            return Ok(());
+        }
+
+        let mut builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            "INSERT INTO validator_description (validator_address, avatar_url, website, details, height)",
+        );
+
+        builder.push_values(self.0.iter(), |mut b, v| {
+            b.push_bind(v.validator_address.clone())
+                .push_bind(v.avatar_url.clone())
+                .push_bind(v.website.clone())
+                .push_bind(v.details.clone())
+                .push_bind(v.height);
+        });
+        builder.push(
+            "ON CONFLICT (validator_address) DO UPDATE \
+            SET avatar_url = EXCLUDED.avatar_url, \
+                website = EXCLUDED.website, \
+                details = EXCLUDED.details, \
+                height = EXCLUDED.height \
+        WHERE validator_description.height <= EXCLUDED.height",
         );
 
         let query = builder.build();

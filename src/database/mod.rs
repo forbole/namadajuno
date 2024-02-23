@@ -8,7 +8,7 @@ mod validator;
 pub use validator::{Validator, Validators};
 pub use validator::{
     ValidatorCommission, ValidatorCommissions, ValidatorInfo, ValidatorInfos, ValidatorStatus,
-    ValidatorStatuses, ValidatorVotingPower, ValidatorVotingPowers,
+    ValidatorStatuses, ValidatorVotingPower, ValidatorVotingPowers, ValidatorDescription, ValidatorDescriptions,
 };
 
 mod block;
