@@ -141,6 +141,7 @@ impl BlockHandle for StakingModule {
             *current_epoch = Some(epoch);
         }
 
+        tracing::info!("Updating validators for epoch {}, it will take seconds", epoch);
         self.update_validators(height.into(), epoch).await?;
 
         Ok(())
