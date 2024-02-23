@@ -51,21 +51,56 @@ impl Node {
     pub async fn validator_infos(
         &self,
         epoch: Epoch,
-    ) -> Result<Vec<(Address, Option<ValidatorState>, Amount, Option<CommissionPair>, Option<ValidatorMetaData>)>, Error> {
+    ) -> Result<
+        Vec<(
+            Address,
+            Option<ValidatorState>,
+            Amount,
+            Option<CommissionPair>,
+            Option<ValidatorMetaData>,
+        )>,
+        Error,
+    > {
         let validators = rpc::get_all_validators(&self.rpc_client.clone(), epoch).await?;
 
-        let mut validator_infos = vec![];
+        let mut tasks = vec![];
         for v in validators {
-            let (state, stake, metadata) = tokio::join!(
-                rpc::get_validator_state(&self.rpc_client, &v, Some(epoch)),
-                rpc::get_validator_stake(&self.rpc_client, epoch, &v),
-                rpc::query_metadata(&self.rpc_client, &v, Some(epoch))
-            );
-            let (description, commission) = metadata?;
-            validator_infos.push((v, state?, stake?, commission, description));
+            let task = self.query_validator_info(epoch, v.clone());
+            tasks.push(task);
         }
 
+        let mut validator_infos = vec![];
+        futures_util::future::join_all(tasks)
+            .await
+            .into_iter()
+            .map(|v| v.map(|result| validator_infos.push(result)))
+            .collect::<Result<(), Error>>()?;
+
         Ok(validator_infos)
+    }
+
+    async fn query_validator_info(
+        &self,
+        epoch: Epoch,
+        addr: Address,
+    ) -> Result<
+        (
+            Address,
+            Option<ValidatorState>,
+            Amount,
+            Option<CommissionPair>,
+            Option<ValidatorMetaData>,
+        ),
+        Error,
+    > {
+        let (state, stake, metadata) = tokio::join!(
+            rpc::get_validator_state(&self.rpc_client, &addr, Some(epoch)),
+            rpc::get_validator_stake(&self.rpc_client, epoch, &addr),
+            rpc::query_metadata(&self.rpc_client, &addr, Some(epoch))
+        );
+
+        let (metadata, commission) = metadata?;
+        Ok((addr, state?, stake?, commission, metadata))
     }
 
     pub async fn epoch(&self, height: u64) -> Result<Epoch, Error> {
