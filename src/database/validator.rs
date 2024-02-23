@@ -182,9 +182,9 @@ impl ValidatorCommission {
 
 pub struct ValidatorCommissions(Vec<ValidatorCommission>);
 
-impl From<Vec<ValidatorCommission>> for ValidatorCommissions {
-    fn from(commissions: Vec<ValidatorCommission>) -> Self {
-        ValidatorCommissions(commissions)
+impl From<Vec<Option<ValidatorCommission>>> for ValidatorCommissions {
+    fn from(commissions: Vec<Option<ValidatorCommission>>) -> Self {
+        ValidatorCommissions(commissions.into_iter().filter_map(|x| x).collect())
     }
 }
 
@@ -239,9 +239,9 @@ impl ValidatorStatus {
 
 pub struct ValidatorStatuses(Vec<ValidatorStatus>);
 
-impl From<Vec<ValidatorStatus>> for ValidatorStatuses {
-    fn from(statuses: Vec<ValidatorStatus>) -> Self {
-        ValidatorStatuses(statuses)
+impl From<Vec<Option<ValidatorStatus>>> for ValidatorStatuses {
+    fn from(statuses: Vec<Option<ValidatorStatus>>) -> Self {
+        ValidatorStatuses(statuses.into_iter().filter_map(|x| x).collect())
     }
 }
 
@@ -306,9 +306,9 @@ impl ValidatorDescription {
 
 pub struct ValidatorDescriptions(Vec<ValidatorDescription>);
 
-impl From<Vec<ValidatorDescription>> for ValidatorDescriptions {
-    fn from(descriptions: Vec<ValidatorDescription>) -> Self {
-        ValidatorDescriptions(descriptions)
+impl From<Vec<Option<ValidatorDescription>>> for ValidatorDescriptions {
+    fn from(descriptions: Vec<Option<ValidatorDescription>>) -> Self {
+        ValidatorDescriptions(descriptions.into_iter().filter_map(|x| x).collect())
     }
 }
 

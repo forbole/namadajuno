@@ -67,11 +67,15 @@ impl StakingModule {
             .clone()
             .into_iter()
             .map(|(address, _, _, commission, _)| {
-                database::ValidatorCommission::new(
-                    address.encode(),
-                    commission.unwrap().commission_rate.to_string(),
-                    height,
-                )
+                if let Some(commission) = commission {
+                    return Some(database::ValidatorCommission::new(
+                        address.encode(),
+                        commission.commission_rate.to_string(),
+                        height,
+                    ));
+                }
+
+                None
             })
             .collect::<Vec<_>>();
         database::ValidatorCommissions::from(validators_commissions)
@@ -83,7 +87,11 @@ impl StakingModule {
             .clone()
             .into_iter()
             .map(|(address, state, _, _, _)| {
-                database::ValidatorStatus::new(address.encode(), state.unwrap(), height)
+                if let Some(state) = state {
+                    return Some(database::ValidatorStatus::new(address.encode(), state, height));
+                }
+
+                None
             })
             .collect::<Vec<_>>();
         database::ValidatorStatuses::from(validators_statuses)
@@ -94,13 +102,17 @@ impl StakingModule {
         let validators_descriptions = validator_infos
             .into_iter()
             .map(|(address, _, _, _, description)| {
-                database::ValidatorDescription::new(
-                    address.encode(),
-                    description.clone().unwrap().avatar.unwrap_or_default(),
-                    description.clone().unwrap().website.unwrap_or_default(),
-                    description.clone().unwrap().description.unwrap_or_default(),
-                    height,
-                )
+                if let Some(description) = description {
+                    return Some(database::ValidatorDescription::new(
+                        address.encode(),
+                        description.clone().avatar.unwrap_or_default(),
+                        description.clone().website.unwrap_or_default(),
+                        description.clone().description.unwrap_or_default(),
+                        height,
+                    ));
+                }
+                
+                None
             })
             .collect::<Vec<_>>();
         database::ValidatorDescriptions::from(validators_descriptions)
