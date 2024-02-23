@@ -1,3 +1,5 @@
+use std::task;
+
 use namada_sdk::proof_of_stake::types::{CommissionPair, ValidatorMetaData, ValidatorState};
 use tendermint::block::Height;
 use tendermint_rpc::{endpoint, Client, HttpClient, Paging};
@@ -61,20 +63,25 @@ impl Node {
         )>,
         Error,
     > {
-        let validators = rpc::get_all_validators(&self.rpc_client.clone(), epoch).await?;
-
-        let mut tasks = vec![];
-        for v in validators {
-            let task = self.query_validator_info(epoch, v.clone());
-            tasks.push(task);
-        }
+        let validators = rpc::get_all_validators(&self.rpc_client.clone(), epoch)
+            .await?
+            .into_iter()
+            .collect::<Vec<_>>();
 
         let mut validator_infos = vec![];
-        futures_util::future::join_all(tasks)
-            .await
-            .into_iter()
-            .map(|v| v.map(|result| validator_infos.push(result)))
-            .collect::<Result<(), Error>>()?;
+
+        // HACK: Query 100 validators at a time, to avoid from crashing the RPC server
+        for chunk in validators.chunks(100) {
+            let mut tasks = vec![];
+
+            for validator in chunk {
+                tasks.push(self.query_validator_info(epoch, validator.clone()));
+            }
+            
+            for result in futures::future::join_all(tasks).await {
+                validator_infos.push(result?);
+            }
+        }
 
         Ok(validator_infos)
     }
