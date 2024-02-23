@@ -1,11 +1,14 @@
-use namada_sdk::state::Epoch;
 use std::sync::Arc;
-use tendermint::block::Block;
 use tokio::sync::Mutex;
+
+use namada_sdk::state::Epoch;
+use tendermint::block::Block;
+use tendermint::PublicKey;
 
 use crate::database::{self, Database};
 use crate::modules::BlockHandle;
 use crate::node::Node;
+use crate::utils;
 use crate::Error;
 
 #[derive(Clone)]
@@ -31,7 +34,7 @@ impl StakingModule {
         let validators = validator_infos
             .clone()
             .into_iter()
-            .map(|(address, _, _, commission, _)| {
+            .map(|(address, _, _, commission, _, _)| {
                 database::ValidatorInfo::new(
                     address.encode(),
                     commission
@@ -50,7 +53,7 @@ impl StakingModule {
         let validators = validator_infos
             .clone()
             .into_iter()
-            .map(|(address, _, voting_power, _, _)| {
+            .map(|(address, _, voting_power, _, _, _)| {
                 database::ValidatorVotingPower::new(
                     address.encode(),
                     voting_power.to_string().parse::<i64>().unwrap(),
@@ -66,7 +69,7 @@ impl StakingModule {
         let validators_commissions = validator_infos
             .clone()
             .into_iter()
-            .map(|(address, _, _, commission, _)| {
+            .map(|(address, _, _, commission, _, _)| {
                 if let Some(commission) = commission {
                     return Some(database::ValidatorCommission::new(
                         address.encode(),
@@ -86,7 +89,7 @@ impl StakingModule {
         let validators_statuses = validator_infos
             .clone()
             .into_iter()
-            .map(|(address, state, _, _, _)| {
+            .map(|(address, state, _, _, _, _)| {
                 if let Some(state) = state {
                     return Some(database::ValidatorStatus::new(
                         address.encode(),
@@ -104,8 +107,9 @@ impl StakingModule {
 
         // Save descriptions
         let validators_descriptions = validator_infos
+            .clone()
             .into_iter()
-            .map(|(address, _, _, _, description)| {
+            .map(|(address, _, _, _, description, _)| {
                 if let Some(description) = description {
                     return Some(database::ValidatorDescription::new(
                         address.encode(),
@@ -122,6 +126,16 @@ impl StakingModule {
         database::ValidatorDescriptions::from(validators_descriptions)
             .save(&self.db)
             .await?;
+
+        for (address, _, _, _, _, pub_key) in validator_infos {
+            if let Some(pub_key) = pub_key {
+                let consensus_key = database::ValidatorConsensusKey::new(
+                    Into::<PublicKey>::into(pub_key).to_bech32(utils::COMMON_PK_HRP),
+                    address.encode(),
+                );
+                consensus_key.save(&self.db).await?;
+            }
+        }
 
         Ok(())
     }
@@ -141,7 +155,10 @@ impl BlockHandle for StakingModule {
             *current_epoch = Some(epoch);
         }
 
-        tracing::info!("Updating validators for epoch {}, it will take seconds", epoch);
+        tracing::info!(
+            "Updating validators for epoch {}, it will take seconds",
+            epoch
+        );
         self.update_validators(height.into(), epoch).await?;
 
         Ok(())

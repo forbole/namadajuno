@@ -2,6 +2,7 @@ use namada_sdk::proof_of_stake::types::{CommissionPair, ValidatorMetaData, Valid
 use tendermint::block::Height;
 use tendermint_rpc::{endpoint, Client, HttpClient, Paging};
 
+use namada_sdk::types::key::common::PublicKey;
 use namada_sdk::rpc;
 use namada_sdk::state::Epoch;
 use namada_sdk::types::address::Address;
@@ -58,6 +59,7 @@ impl Node {
             Amount,
             Option<CommissionPair>,
             Option<ValidatorMetaData>,
+            Option<PublicKey>,
         )>,
         Error,
     > {
@@ -95,17 +97,19 @@ impl Node {
             Amount,
             Option<CommissionPair>,
             Option<ValidatorMetaData>,
+            Option<PublicKey>,
         ),
         Error,
     > {
-        let (state, stake, metadata) = tokio::join!(
+        let (state, stake, metadata, pub_key) = tokio::join!(
             rpc::get_validator_state(&self.rpc_client, &addr, Some(epoch)),
             rpc::get_validator_stake(&self.rpc_client, epoch, &addr),
-            rpc::query_metadata(&self.rpc_client, &addr, Some(epoch))
+            rpc::query_metadata(&self.rpc_client, &addr, Some(epoch)),
+            rpc::query_validator_consensus_keys(&self.rpc_client, &addr),
         );
 
         let (metadata, commission) = metadata?;
-        Ok((addr, state?, stake?, commission, metadata))
+        Ok((addr, state?, stake?, commission, metadata, pub_key?))
     }
 
     pub async fn epoch(&self, height: u64) -> Result<Epoch, Error> {
