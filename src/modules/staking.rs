@@ -88,7 +88,11 @@ impl StakingModule {
             .into_iter()
             .map(|(address, state, _, _, _)| {
                 if let Some(state) = state {
-                    return Some(database::ValidatorStatus::new(address.encode(), state, height));
+                    return Some(database::ValidatorStatus::new(
+                        address.encode(),
+                        state,
+                        height,
+                    ));
                 }
 
                 None

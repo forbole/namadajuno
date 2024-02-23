@@ -136,7 +136,7 @@ fn enqueue_new_blocks(
     let mut start_height = current_height;
     let handler = tokio::spawn(async move {
         loop {
-            let new_height =  match node.latest_height().await {
+            let new_height = match node.latest_height().await {
                 Ok(h) => h,
                 Err(e) => {
                     tracing::error!("Failed to get latest height: {}", e);

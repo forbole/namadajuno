@@ -1,5 +1,3 @@
-use std::task;
-
 use namada_sdk::proof_of_stake::types::{CommissionPair, ValidatorMetaData, ValidatorState};
 use tendermint::block::Height;
 use tendermint_rpc::{endpoint, Client, HttpClient, Paging};
@@ -77,7 +75,7 @@ impl Node {
             for validator in chunk {
                 tasks.push(self.query_validator_info(epoch, validator.clone()));
             }
-            
+
             for result in futures::future::join_all(tasks).await {
                 validator_infos.push(result?);
             }
