@@ -9,6 +9,15 @@ object_relationships:
       insertion_order: null
       column_mapping:
         height: height
+- name: validator
+  using:
+    manual_configuration:
+      remote_table:
+        name: validator
+        schema: public
+      column_mapping:
+        validator_address: validator_address
+      insertion_order: null
 select_permissions:
 - permission:
     allow_aggregations: true
