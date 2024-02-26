@@ -16,7 +16,6 @@ select_permissions:
     allow_aggregations: false
     columns:
     - validator_address
-    - moniker
     - website
     - details
     - height
