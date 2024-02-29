@@ -1,11 +1,13 @@
 use chrono::{DateTime, Utc};
 use tendermint::abci::types::ExecTxResult;
 use tendermint::block::Block as TmBlock;
+use sqlx::FromRow;
 
 use crate::database::Database;
 use crate::utils;
 use crate::Error;
 
+#[derive(FromRow)]
 pub struct Block {
     pub height: i64,
     pub hash: String,
@@ -44,6 +46,36 @@ impl Block {
         .await?;
 
         Ok(())
+    }
+
+    pub async fn latest_block(db: &Database) -> Result<Option<Self>, Error> {
+        let block = sqlx::query_as::<_, Self>(
+            r#"
+            SELECT * FROM block
+            ORDER BY height DESC
+            LIMIT 1
+            "#,
+        )
+        .fetch_optional(db.pool().as_ref())
+        .await?;
+    
+       Ok(block)
+    }
+
+    pub async fn block_before_time(db: &Database, time: DateTime<Utc>) -> Result<Option<Self>, Error> {
+        let block = sqlx::query_as::<_, Self>(
+            r#"
+            SELECT * FROM block
+            WHERE timestamp <= $1
+            ORDER BY height DESC
+            LIMIT 1
+            "#,
+        )
+        .bind(time)
+        .fetch_optional(db.pool().as_ref())
+        .await?;
+    
+       Ok(block)
     }
 }
 

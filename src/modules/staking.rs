@@ -6,7 +6,7 @@ use tendermint::block::Block;
 use tendermint::PublicKey;
 
 use crate::database::{self, Database};
-use crate::modules::BlockHandle;
+use crate::modules::ModuleBasic;
 use crate::node::Node;
 use crate::utils;
 use crate::Error;
@@ -141,7 +141,7 @@ impl StakingModule {
     }
 }
 
-impl BlockHandle for StakingModule {
+impl ModuleBasic for StakingModule {
     async fn handle_block(&mut self, block: Block) -> Result<(), Error> {
         // handle block
         let height = block.header.height;
@@ -162,5 +162,9 @@ impl BlockHandle for StakingModule {
         self.update_validators(height.into(), epoch).await?;
 
         Ok(())
+    }
+
+    fn register_periodic_operations(&self, _: &mut clokwerk::Scheduler) {
+        // Do nothing
     }
 }

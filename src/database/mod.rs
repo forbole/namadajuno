@@ -25,6 +25,9 @@ pub use message::Message;
 mod tx;
 pub use tx::Tx;
 
+mod consensus;
+pub use consensus::AverageBlockTime;
+
 #[derive(Clone)]
 pub struct Database {
     pool: Arc<PgPool>,
