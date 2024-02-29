@@ -1,14 +1,14 @@
 use crate::Error;
-use tendermint::block::Block;
 use clokwerk;
+use namada_sdk::state::Epoch;
 
 mod staking;
 pub use staking::StakingModule;
-
 mod consensus;
 pub use consensus::ConsensusModule;
 
 pub trait ModuleBasic {
-    async fn handle_block(&mut self, block: Block) -> Result<(), Error>;
     fn register_periodic_operations(&self, scheduler: &mut clokwerk::Scheduler);
+    async fn handle_epoch(&self, height: u64, epoch: Epoch) -> Result<(), Error>;
 }
+

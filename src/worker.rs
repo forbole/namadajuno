@@ -1,9 +1,10 @@
 use async_channel::Receiver;
 use async_channel::Sender;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tracing::info;
 
 use namada_sdk;
+use namada_sdk::state::Epoch;
 use namada_sdk::tx::data::TxType;
 use namada_sdk::tx::Tx as NamadaTx;
 use tendermint::abci::types::ExecTxResult;
@@ -26,6 +27,7 @@ pub struct Context {
     node: Node,
     db: database::Database,
     checksums_map: std::collections::HashMap<String, String>,
+    epoch: Arc<Mutex<Option<Epoch>>>,
     modules: Vec<StakingModule>,
 }
 
@@ -44,6 +46,7 @@ impl Context {
             node,
             db,
             checksums_map,
+            epoch: Arc::new(Mutex::new(None)),
             modules,
         }
     }
@@ -92,9 +95,12 @@ async fn process_block(ctx: &Context, height: u64) -> Result<(), Error> {
     let block = database::Block::from_tm_block(tm_block.clone(), txs_results.clone());
     block.save(&ctx.db).await?;
 
-    // Handle block handle modules
-    for module in ctx.modules.clone().iter_mut() {
-        module.handle_block(tm_block.clone()).await?;
+    // Handle epoch for modules
+    let height = tm_block.header.height.into();
+    if let Some(epoch) = update_epoch(ctx, height).await? {
+        for module in ctx.modules.clone().iter() {
+            module.handle_epoch(height.into(), epoch).await?;
+        }
     }
 
     // Save commits
@@ -184,4 +190,15 @@ async fn process_commit(
         .await?;
 
     Ok(())
+}
+
+async fn update_epoch(ctx: &Context, height: u64) -> Result<Option<Epoch>, Error> {
+    let epoch = ctx.node.epoch(height.into()).await?;
+    let mut current_epoch = ctx.epoch.lock().unwrap();
+    if Some(epoch) == *current_epoch {
+        return Ok(None);
+    }
+
+    *current_epoch = Some(epoch);
+    Ok(Some(epoch))
 }

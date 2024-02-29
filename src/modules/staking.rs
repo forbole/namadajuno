@@ -1,8 +1,4 @@
-use std::sync::Arc;
-use tokio::sync::Mutex;
-
 use namada_sdk::state::Epoch;
-use tendermint::block::Block;
 use tendermint::PublicKey;
 
 use crate::database::{self, Database};
@@ -15,7 +11,7 @@ use crate::Error;
 pub struct StakingModule {
     node: Node,
     db: Database,
-    epoch: Arc<Mutex<Option<Epoch>>>,
+    
 }
 
 impl StakingModule {
@@ -23,7 +19,6 @@ impl StakingModule {
         Self {
             node,
             db,
-            epoch: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -142,19 +137,7 @@ impl StakingModule {
 }
 
 impl ModuleBasic for StakingModule {
-    async fn handle_block(&mut self, block: Block) -> Result<(), Error> {
-        // handle block
-        let height = block.header.height;
-        let epoch = self.node.epoch(height.into()).await?;
-        {
-            let mut current_epoch = self.epoch.lock().await;
-            if Some(epoch) == *current_epoch {
-                return Ok(());
-            }
-
-            *current_epoch = Some(epoch);
-        }
-
+    async fn handle_epoch(&self, height: u64, epoch: Epoch) -> Result<(), Error> {
         tracing::info!(
             "Updating validators for epoch {}, it will take seconds",
             epoch

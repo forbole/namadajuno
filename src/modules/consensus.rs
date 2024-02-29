@@ -1,14 +1,10 @@
-
-use crate::database::{Database, Block, AverageBlockTime};
 use chrono::{Duration, Utc};
 use clokwerk::{Scheduler, TimeUnits};
-use rand_core::block;
 use tracing;
 use std::sync::Arc;
+use namada_sdk::state::Epoch;
 
-use tendermint::block::Block as TmBlock;
-
-
+use crate::database::{Database, Block, AverageBlockTime};
 use crate::modules::ModuleBasic;
 use crate::Error;
 
@@ -41,7 +37,7 @@ impl ConsensusModule {
         // Calculate average block time per hour
         let block_time_delta = block.timestamp.timestamp() - block_before_hour.timestamp.timestamp();
         let block_count = block.height - block_before_hour.height;
-        
+
         let mut average_block_time = 0.0;
         if block_count != 0 {
             average_block_time = block_time_delta as f64 / block_count as f64;
@@ -56,7 +52,7 @@ impl ConsensusModule {
 }
 
 impl ModuleBasic for ConsensusModule{
-    async fn handle_block(&mut self, _: TmBlock) -> Result<(), Error> {
+    async fn handle_epoch(&self, _: u64, _: Epoch) -> Result<(), Error> {
         // Do nothing
         Ok(())
     }
