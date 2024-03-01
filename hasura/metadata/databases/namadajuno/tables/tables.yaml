@@ -1,3 +1,5 @@
+- "!include public_average_block_time_per_day.yaml"
+- "!include public_average_block_time_per_hour.yaml"
 - "!include public_block.yaml"
 - "!include public_message.yaml"
 - "!include public_pre_commit.yaml"
