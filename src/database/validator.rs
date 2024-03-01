@@ -39,7 +39,7 @@ impl Validators {
         builder.push("ON CONFLICT DO NOTHING");
 
         let query = builder.build();
-        query.execute(db.pool().as_ref()).await?;
+        query.execute(&db.pool()).await?;
 
         Ok(())
     }
@@ -100,7 +100,7 @@ impl ValidatorInfos {
         );
 
         let query = builder.build();
-        query.execute(db.pool().as_ref()).await?;
+        query.execute(&db.pool()).await?;
 
         Ok(())
     }
@@ -156,7 +156,7 @@ impl ValidatorVotingPowers {
         );
 
         let query = builder.build();
-        query.execute(db.pool().as_ref()).await?;
+        query.execute(&db.pool()).await?;
 
         Ok(())
     }
@@ -211,7 +211,7 @@ impl ValidatorCommissions {
         );
 
         let query = builder.build();
-        query.execute(db.pool().as_ref()).await?;
+        query.execute(&db.pool()).await?;
 
         Ok(())
     }
@@ -270,7 +270,7 @@ impl ValidatorStatuses {
         );
 
         let query = builder.build();
-        query.execute(db.pool().as_ref()).await?;
+        query.execute(&db.pool()).await?;
 
         Ok(())
     }
@@ -339,7 +339,7 @@ impl ValidatorDescriptions {
         );
 
         let query = builder.build();
-        query.execute(db.pool().as_ref()).await?;
+        query.execute(&db.pool()).await?;
 
         Ok(())
     }
@@ -365,7 +365,7 @@ impl ValidatorConsensusKey {
         sqlx::query(query)
             .bind(&self.consensus_pubkey)
             .bind(&self.validator_address)
-            .execute(db.pool().as_ref())
+            .execute(&db.pool())
             .await?;
 
         Ok(())

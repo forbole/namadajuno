@@ -52,7 +52,7 @@ impl Tx {
         .bind(self.gas_wanted)
         .bind(self.gas_used)
         .bind(self.raw_log.clone())
-        .execute(db.pool().as_ref())
+        .execute(&db.pool())
         .await?;
 
         Ok(())

@@ -72,7 +72,7 @@ impl Message {
         .bind(&self.tx_hash)
         .bind(&self.message_type)
         .bind(&self.value)
-        .execute(db.pool().as_ref())
+        .execute(&db.pool())
         .await?;
 
         Ok(())

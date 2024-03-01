@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::NaiveDateTime;
 use tendermint::abci::types::ExecTxResult;
 use tendermint::block::Block as TmBlock;
 use sqlx::FromRow;
@@ -11,10 +11,10 @@ use crate::Error;
 pub struct Block {
     pub height: i64,
     pub hash: String,
-    pub num_txs: i64,
+    pub num_txs: i32,
     pub total_gas: i64,
     pub proposer_address: String,
-    pub timestamp: DateTime<Utc>,
+    pub timestamp: NaiveDateTime,
 }
 
 impl Block {
@@ -22,10 +22,10 @@ impl Block {
         Self {
             height: block.header.height.into(),
             hash: block.header.hash().to_string(),
-            num_txs: block.data.len() as i64,
+            num_txs: block.data.len() as i32,
             total_gas: sum_total_gas(tx_results),
             proposer_address: utils::addr_to_bech32(block.header.proposer_address),
-            timestamp: DateTime::from_timestamp(block.header.time.unix_timestamp(), 0)
+            timestamp: NaiveDateTime::from_timestamp_opt(block.header.time.unix_timestamp(), 0)
                 .expect("invalid timestamp"),
         }
     }
@@ -42,7 +42,7 @@ impl Block {
         .bind(self.total_gas)
         .bind(self.proposer_address.clone())
         .bind(self.timestamp)
-        .execute(db.pool().as_ref())
+        .execute(&db.pool())
         .await?;
 
         Ok(())
@@ -50,19 +50,18 @@ impl Block {
 
     pub async fn latest_block(db: &Database) -> Result<Option<Self>, Error> {
         let block = sqlx::query_as::<_, Self>(
-            r#"
-            SELECT * FROM block
+            r#"SELECT * FROM block
             ORDER BY height DESC
             LIMIT 1
             "#,
         )
-        .fetch_optional(db.pool().as_ref())
+        .fetch_optional(&db.pool())
         .await?;
     
        Ok(block)
     }
 
-    pub async fn block_before_time(db: &Database, time: DateTime<Utc>) -> Result<Option<Self>, Error> {
+    pub async fn block_before_time(db: &Database, time: NaiveDateTime) -> Result<Option<Self>, Error> {
         let block = sqlx::query_as::<_, Self>(
             r#"
             SELECT * FROM block
@@ -72,7 +71,7 @@ impl Block {
             "#,
         )
         .bind(time)
-        .fetch_optional(db.pool().as_ref())
+        .fetch_optional(&db.pool())
         .await?;
     
        Ok(block)

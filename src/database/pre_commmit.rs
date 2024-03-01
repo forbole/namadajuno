@@ -98,7 +98,7 @@ impl PreCommits {
         builder.push("ON CONFLICT DO NOTHING");
 
         let query = builder.build();
-        query.execute(db.pool().as_ref()).await?;
+        query.execute(&db.pool()).await?;
 
         Ok(())
     }

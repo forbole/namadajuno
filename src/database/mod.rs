@@ -30,7 +30,7 @@ pub use consensus::AverageBlockTime;
 
 #[derive(Clone)]
 pub struct Database {
-    pool: Arc<PgPool>,
+    pool: PgPool,
 }
 
 impl Database {
@@ -41,11 +41,11 @@ impl Database {
             .await?;
 
         Ok(Database {
-            pool: Arc::new(pool),
+            pool,
         })
     }
 
-    pub fn pool(&self) -> Arc<PgPool> {
+    pub fn pool(&self) -> PgPool {
         self.pool.clone()
     }
 }
