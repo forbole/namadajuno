@@ -85,7 +85,12 @@ async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
     // Setup and start scheduler
     let mut scheduler = Scheduler::new();
     consensus.register_periodic_operations(&mut scheduler);
-    let scheduler_handle = scheduler.watch_thread(Duration::from_secs(10));
+    tokio::spawn(async move {
+        loop {
+            scheduler.run_pending();
+            tokio::time::sleep(Duration::from_secs(10)).await;
+        }
+    });
 
     // Setup worker context
     let ctx = Arc::new(worker::Context::new(
@@ -106,8 +111,6 @@ async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
         new_blocks_handler.await??;
     }
 
-    // Stop all threads since tasks are done
-    scheduler_handle.stop();
     Ok(())
 }
 

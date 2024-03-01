@@ -1,5 +1,4 @@
 use sqlx::postgres::{PgPool, PgPoolOptions};
-use std::sync::Arc;
 
 use crate::config::DBConfig;
 use crate::Error;

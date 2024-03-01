@@ -1,6 +1,7 @@
 use chrono::{Duration, Utc};
 use clokwerk::{Scheduler, TimeUnits};
 use namada_sdk::state::Epoch;
+use tokio::runtime::Handle;
 use tracing;
 
 use crate::database::{AverageBlockTime, Block, Database};
@@ -16,6 +17,7 @@ impl ConsensusModule {
     pub fn new(db: Database) -> Self {
         Self { db }
     }
+
     async fn update_average_block_time_in_hour(&self) -> Result<(), Error> {
         // Get latest block
         let block = Block::latest_block(&self.db).await?;
@@ -26,7 +28,8 @@ impl ConsensusModule {
 
         // Get block before 1 hour
         let block_before_hour =
-            Block::block_before_time(&self.db, Utc::now() - Duration::hours(1)).await?;
+            Block::block_before_time(&self.db, (Utc::now() - Duration::hours(1)).naive_utc())
+                .await?;
         let block_before_hour = match block_before_hour {
             Some(block) => block,
             None => return Ok(()),
@@ -43,7 +46,7 @@ impl ConsensusModule {
         }
 
         // Save average block time per hour
-        let average_block_time = AverageBlockTime::new(average_block_time, block.height);
+        let average_block_time = AverageBlockTime::new(average_block_time, 1);
         average_block_time
             .save_average_block_time_per_hour(&self.db)
             .await?;
@@ -61,7 +64,8 @@ impl ConsensusModule {
 
         // Get block before 1 day
         let block_before_day =
-            Block::block_before_time(&self.db, Utc::now() - Duration::days(1)).await?;
+            Block::block_before_time(&self.db, (Utc::now() - Duration::days(1)).naive_utc())
+                .await?;
         let block_before_day = match block_before_day {
             Some(block) => block,
             None => return Ok(()),
@@ -94,28 +98,38 @@ impl ModuleBasic for ConsensusModule {
 
     fn register_periodic_operations(&self, scheduler: &mut Scheduler) {
         let module = self.clone();
-        scheduler.every(1.hour()).run(move || {
+        scheduler.every(1.hours()).run(move || {
             let module = module.clone();
-            tokio::spawn(async move {
-                match module.clone().update_average_block_time_in_hour().await {
-                    Ok(_) => {}
-                    Err(e) => {
-                        tracing::error!("Failed to update average block time in hour: {}", e);
+            Handle::current().spawn_blocking(|| {
+                Handle::current().block_on(async move {
+                    tracing::info!("Updating average block time in hour");
+                    match module.update_average_block_time_in_hour().await {
+                        Ok(_) => {
+                            tracing::info!("Updated average block time in hour")
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to update average block time in hour: {}", e);
+                        }
                     }
-                }
+                })
             });
         });
 
         let module = self.clone();
         scheduler.every(1.day()).run(move || {
             let module = module.clone();
-            tokio::spawn(async move {
-                match module.update_average_block_time_in_day().await {
-                    Ok(_) => {}
-                    Err(e) => {
-                        tracing::error!("Failed to update average block time in day: {}", e);
+            Handle::current().spawn_blocking(|| {
+                Handle::current().block_on(async move {
+                    tracing::info!("Updating average block time in day");
+                    match module.update_average_block_time_in_day().await {
+                        Ok(_) => {
+                            tracing::info!("Updated average block time in day")
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to update average block time in day: {}", e);
+                        }
                     }
-                }
+                })
             });
         });
     }
