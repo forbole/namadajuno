@@ -28,7 +28,10 @@ pub struct Context {
     db: database::Database,
     checksums_map: std::collections::HashMap<String, String>,
     epoch: Arc<Mutex<Option<Epoch>>>,
-    modules: Vec<StakingModule>,
+
+    // TODO: use trait object when the Namada RPC provides thread-safe client methods
+    //modules: Vec<Box<dyn ModuleBasic>>,
+    staking: StakingModule,
 }
 
 impl Context {
@@ -38,7 +41,7 @@ impl Context {
         node: Node,
         db: database::Database,
         checksums_map: std::collections::HashMap<String, String>,
-        modules: Vec<StakingModule>,
+        staking: StakingModule,
     ) -> Self {
         Context {
             tx,
@@ -47,7 +50,7 @@ impl Context {
             db,
             checksums_map,
             epoch: Arc::new(Mutex::new(None)),
-            modules,
+            staking,
         }
     }
 }
@@ -98,9 +101,7 @@ async fn process_block(ctx: &Context, height: u64) -> Result<(), Error> {
     // Handle epoch for modules
     let height = tm_block.header.height.into();
     if let Some(epoch) = update_epoch(ctx, height).await? {
-        for module in ctx.modules.clone().iter() {
-            module.handle_epoch(height.into(), epoch).await?;
-        }
+        ctx.staking.handle_epoch(height.into(), epoch).await?;
     }
 
     // Save commits

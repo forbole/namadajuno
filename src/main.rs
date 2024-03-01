@@ -1,3 +1,4 @@
+use modules::ModuleBasic;
 use modules::StakingModule;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
@@ -9,6 +10,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use async_channel;
 use async_channel::Receiver;
 use async_channel::Sender;
+use clokwerk::Scheduler;
 use futures::stream::StreamExt;
 use futures_util::pin_mut;
 use futures_util::Stream;
@@ -76,6 +78,15 @@ async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
         ));
     }
 
+    // Setup modules
+    let staking = StakingModule::new(node.clone(), db.clone());
+    let consensus = modules::ConsensusModule::new(db.clone());
+
+    // Setup and start scheduler
+    let mut scheduler = Scheduler::new();
+    consensus.register_periodic_operations(&mut scheduler);
+    let scheduler_handle = scheduler.watch_thread(Duration::from_secs(10));
+
     // Setup worker context
     let ctx = Arc::new(worker::Context::new(
         tx.clone(),
@@ -83,7 +94,7 @@ async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
         node.clone(),
         db.clone(),
         utils::load_checksums()?,
-        vec![StakingModule::new(node.clone(), db.clone())],
+        staking,
     ));
 
     // Start workers
@@ -95,6 +106,8 @@ async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
         new_blocks_handler.await??;
     }
 
+    // Stop all threads since tasks are done
+    scheduler_handle.stop();
     Ok(())
 }
 
