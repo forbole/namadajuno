@@ -196,7 +196,7 @@ async fn process_commit(
 async fn update_epoch(ctx: &Context, height: u64) -> Result<Option<Epoch>, Error> {
     let epoch = ctx.node.epoch(height.into()).await?;
     let mut current_epoch = ctx.epoch.lock().unwrap();
-    if Some(epoch) == *current_epoch {
+    if Some(epoch) <= *current_epoch {
         return Ok(None);
     }
 
