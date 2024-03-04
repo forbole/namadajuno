@@ -133,4 +133,9 @@ impl ModuleBasic for ConsensusModule {
             });
         });
     }
+
+    async fn handle_message(&self, _message: crate::database::Message) -> Result<(), Error> {
+        // Do nothing
+        Ok(())
+    }
 }

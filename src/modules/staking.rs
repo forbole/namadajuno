@@ -150,4 +150,9 @@ impl ModuleBasic for StakingModule {
     fn register_periodic_operations(&self, _: &mut clokwerk::Scheduler) {
         // Do nothing
     }
+
+    async fn handle_message(&self, _message: crate::database::Message) -> Result<(), Error> {
+        // Do nothing
+        Ok(())
+    }
 }
