@@ -14,7 +14,7 @@ use clokwerk::Scheduler;
 use futures::stream::StreamExt;
 use futures_util::pin_mut;
 use futures_util::Stream;
-use tokio::task::JoinHandle;
+use tokio::task::{JoinHandle, JoinSet};
 
 use error::Error;
 use tendermint_rpc::HttpClient;
@@ -103,12 +103,21 @@ async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
     ));
 
     // Start workers
-    worker::start(ctx).await?;
+     // Start workers
+     let mut workers: JoinSet<Result<(), Error>> = JoinSet::new(); // Array of workers
+     for _ in 0..config.parsing.workers {
+         workers.spawn(worker::start(ctx.clone()));
+     }
 
     // Wait for block handlers to finish
     missing_blocks_handler.await??;
     if let Some(new_blocks_handler) = new_blocks_handler {
         new_blocks_handler.await??;
+    }
+
+    // Wait for workers to finish
+    while let Some(worker) = workers.join_next().await {
+        worker??;
     }
 
     Ok(())

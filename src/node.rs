@@ -2,6 +2,8 @@ use namada_sdk::proof_of_stake::types::{CommissionPair, ValidatorMetaData, Valid
 use tendermint::block::Height;
 use tendermint_rpc::{endpoint, Client, HttpClient, Paging};
 
+use tokio::runtime::Handle;
+
 use namada_sdk::rpc;
 use namada_sdk::state::Epoch;
 use namada_sdk::types::address::Address;
@@ -63,25 +65,34 @@ impl Node {
         )>,
         Error,
     > {
-        let validators = rpc::get_all_validators(&self.rpc_client.clone(), epoch)
-            .await?
-            .into_iter()
-            .collect::<Vec<_>>();
+        let client = self.clone();
+        let validator_infos = Handle::current()
+            .spawn_blocking(move || {
+                Handle::current().block_on(async move {
+                    let validators = rpc::get_all_validators(&client.rpc_client, epoch)
+                        .await
+                        .unwrap()
+                        .into_iter()
+                        .collect::<Vec<_>>();
 
-        let mut validator_infos = vec![];
+                    let mut validator_infos = vec![];
 
-        // HACK: Query 10 validators at a time, to avoid from crashing the RPC server
-        for chunk in validators.chunks(20) {
-            let mut tasks = vec![];
+                    // HACK: Query 10 validators at a time, to avoid from crashing the RPC server
+                    for chunk in validators.chunks(10) {
+                        let mut tasks = vec![];
 
-            for validator in chunk {
-                tasks.push(self.query_validator_info(epoch, validator.clone()));
-            }
+                        for validator in chunk {
+                            tasks.push(client.query_validator_info(epoch, validator.clone()));
+                        }
 
-            for result in futures::future::join_all(tasks).await {
-                validator_infos.push(result?);
-            }
-        }
+                        for result in futures::future::join_all(tasks).await {
+                            validator_infos.push(result.unwrap());
+                        }
+                    }
+                    validator_infos
+                })
+            })
+            .await?;
 
         Ok(validator_infos)
     }
@@ -113,9 +124,17 @@ impl Node {
     }
 
     pub async fn epoch(&self, height: u64) -> Result<Epoch, Error> {
-        let epoch = rpc::query_epoch_at_height(&self.rpc_client, height.into())
-            .await?
-            .ok_or(Error::EpochNotFound)?;
+        let client = self.clone();
+        let epoch = Handle::current()
+            .spawn_blocking(move || {
+                Handle::current().block_on(async move {
+                    rpc::query_epoch_at_height(&client.rpc_client, height.into())
+                        .await?
+                        .ok_or(Error::EpochNotFound)
+                })
+            })
+            .await??;
+
         Ok(epoch)
     }
 }
