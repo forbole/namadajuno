@@ -5,8 +5,8 @@ use namada_sdk::governance::utils::TallyResult;
 use namada_sdk::governance::{InitProposalData, VoteProposalData};
 use namada_sdk::state::Epoch;
 
-use crate::database::{Database, Message};
 use crate::database::{Block, Proposal, ProposalTallyResult, ProposalVote};
+use crate::database::{Database, Message};
 use crate::error::Error;
 use crate::modules::ModuleBasic;
 use crate::node::Node;
@@ -69,13 +69,24 @@ impl ModuleBasic for GovModule {
                 // Update proposal status
                 match tally.result {
                     TallyResult::Passed => {
-                        proposal.status = "PROPOSAL_STATUS_PASSED".to_string();
+                        Proposal::update_ended_proposal_status(
+                            &self.db,
+                            epoch.into(),
+                            proposal.id,
+                            "PROPOSAL_STATUS_PASSED".to_string(),
+                        )
+                        .await?;
                     }
                     TallyResult::Rejected => {
-                        proposal.status = "PROPOSAL_STATUS_REJECTED".to_string();
+                        Proposal::update_ended_proposal_status(
+                            &self.db,
+                            epoch.into(),
+                            proposal.id,
+                            "PROPOSAL_STATUS_REJECTED".to_string(),
+                        )
+                        .await?;
                     }
                 }
-                proposal.save(&self.db).await?;
             }
         }
 
@@ -120,7 +131,10 @@ impl ModuleBasic for GovModule {
                             .map(|t| t.to_string())
                             .unwrap_or_else(|| "No description".to_string()),
                         proposal.r#type,
-                        Block::block_at_height(&self.db, message.height).await?.map(|b| b.timestamp).expect("Block not found"),
+                        Block::block_at_height(&self.db, message.height)
+                            .await?
+                            .map(|b| b.timestamp)
+                            .expect("Block not found"),
                         proposal.voting_start_epoch.into(),
                         proposal.voting_end_epoch.into(),
                         proposal.grace_epoch.into(),
