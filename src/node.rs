@@ -4,6 +4,8 @@ use tendermint_rpc::{endpoint, Client, HttpClient, Paging};
 
 use tokio::runtime::Handle;
 
+use namada_sdk::governance::storage::proposal::StorageProposal;
+use namada_sdk::governance::utils::{ProposalResult, Vote};
 use namada_sdk::rpc;
 use namada_sdk::state::Epoch;
 use namada_sdk::types::address::Address;
@@ -70,8 +72,7 @@ impl Node {
             .spawn_blocking(move || {
                 Handle::current().block_on(async move {
                     let validators = rpc::get_all_validators(&client.rpc_client, epoch)
-                        .await
-                        .unwrap()
+                        .await?
                         .into_iter()
                         .collect::<Vec<_>>();
 
@@ -86,13 +87,17 @@ impl Node {
                         }
 
                         for result in futures::future::join_all(tasks).await {
+                            match result {
+                                Err(e) => return Err(e),
+                                _ => {}
+                            }
                             validator_infos.push(result.unwrap());
                         }
                     }
-                    validator_infos
+                    Ok(validator_infos)
                 })
             })
-            .await?;
+            .await??;
 
         Ok(validator_infos)
     }
@@ -136,5 +141,42 @@ impl Node {
             .await??;
 
         Ok(epoch)
+    }
+
+    pub async fn proposal(&self, proposal_id: u64) -> Result<Option<StorageProposal>, Error> {
+        let client = self.clone();
+        let proposal = Handle::current()
+            .spawn_blocking(move || {
+                Handle::current().block_on(async move {
+                    rpc::query_proposal_by_id(&client.rpc_client, proposal_id)
+                        .await?
+                        .ok_or(Error::ProposalNotFound)
+                })
+            })
+            .await?;
+
+        match proposal {
+            Err(e) => {
+                if let Error::ProposalNotFound = e {
+                   return Ok(None)
+                }
+                Err(e)
+            },
+            Ok(proposal) => Ok(Some(proposal)),
+        }
+    }
+
+    pub async fn proposal_result(&self, proposal_id: u64) -> Result<ProposalResult, Error> {
+        let result = rpc::query_proposal_result(&self.rpc_client, proposal_id)
+            .await?
+            .ok_or(Error::ProposalNotFound)?;
+
+        Ok(result)
+    }
+
+    pub async fn proposal_votes(&self, proposal_id: u64) -> Result<Vec<Vote>, Error> {
+        let votes = rpc::query_proposal_votes(&self.rpc_client, proposal_id).await?;
+
+        Ok(votes)
     }
 }

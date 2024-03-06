@@ -81,6 +81,7 @@ async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
     // Setup modules
     let staking = StakingModule::new(node.clone(), db.clone());
     let consensus = modules::ConsensusModule::new(db.clone());
+    let gov = modules::GovModule::new(node.clone(), db.clone());
 
     // Setup and start scheduler
     let mut scheduler = Scheduler::new();
@@ -100,6 +101,7 @@ async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
         db.clone(),
         utils::load_checksums()?,
         staking,
+        gov,
     ));
 
     // Start workers

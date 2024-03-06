@@ -15,7 +15,7 @@ use tendermint::validator::Info as ValidatorInfo;
 
 use crate::database;
 use crate::modules::ModuleBasic;
-use crate::modules::StakingModule;
+use crate::modules::{StakingModule, GovModule};
 use crate::node::Node;
 use crate::utils;
 use crate::Error;
@@ -32,6 +32,7 @@ pub struct Context {
     // TODO: use trait object when the Namada RPC provides thread-safe client methods
     //modules: Vec<Box<dyn ModuleBasic>>,
     staking: StakingModule,
+    gov: GovModule,
 }
 
 impl Context {
@@ -42,6 +43,7 @@ impl Context {
         db: database::Database,
         checksums_map: std::collections::HashMap<String, String>,
         staking: StakingModule,
+        gov: GovModule,
     ) -> Self {
         Context {
             tx,
@@ -51,6 +53,7 @@ impl Context {
             checksums_map,
             epoch: Arc::new(Mutex::new(None)),
             staking,
+            gov,
         }
     }
 }
@@ -147,10 +150,17 @@ async fn process_tx(
     );
     tx.save(&ctx.db).await?;
 
+    if !tx.success {
+        return Ok(());
+    }
+
     // Save message
     let msg = database::Message::from_tx(&ctx.checksums_map, height as i64, tx_hash, namada_tx);
     if let Some(msg) = msg {
         msg.save(&ctx.db).await?;
+
+        // Handle message for modules
+        ctx.gov.handle_message(msg).await?;
     }
 
     Ok(())

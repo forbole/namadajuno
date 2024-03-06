@@ -27,6 +27,10 @@ pub use tx::Tx;
 mod consensus;
 pub use consensus::AverageBlockTime;
 
+mod gov;
+pub use gov::{Proposal, ProposalVote, ProposalTallyResult};
+
+
 #[derive(Clone)]
 pub struct Database {
     pool: PgPool,

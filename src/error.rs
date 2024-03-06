@@ -52,4 +52,6 @@ pub enum Error {
 
     #[error("Epoch not found")]
     EpochNotFound,
+    #[error("Proposal not found")]
+    ProposalNotFound,
 }
