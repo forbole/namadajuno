@@ -105,6 +105,7 @@ async fn process_block(ctx: &Context, height: u64) -> Result<(), Error> {
     let height = tm_block.header.height.into();
     if let Some(epoch) = update_epoch(ctx, height).await? {
         ctx.staking.handle_epoch(height.into(), epoch).await?;
+        ctx.gov.handle_epoch(height.into(), epoch).await?;
     }
 
     // Save commits

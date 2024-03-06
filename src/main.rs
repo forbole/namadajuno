@@ -86,6 +86,7 @@ async fn start(config: config::Config, node: node::Node) -> Result<(), Error> {
     // Setup and start scheduler
     let mut scheduler = Scheduler::new();
     consensus.register_periodic_operations(&mut scheduler);
+    gov.register_periodic_operations(&mut scheduler);
     tokio::spawn(async move {
         loop {
             scheduler.run_pending();

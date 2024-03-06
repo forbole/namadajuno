@@ -1,13 +1,15 @@
-use serde_json::json;
-use namada_sdk::governance::ProposalType;
-use sqlx::types::JsonValue;
 use chrono::NaiveDateTime;
+use namada_sdk::governance::ProposalType;
+use serde_json::json;
+use sqlx::types::JsonValue;
+use sqlx::FromRow;
 
 use crate::database::Database;
 use crate::Error;
 
+#[derive(FromRow)]
 pub struct Proposal {
-    pub id: i64,
+    pub id: i32,
     pub title: String,
     pub description: String,
     pub content: JsonValue,
@@ -25,7 +27,7 @@ impl Proposal {
         title: String,
         description: String,
         content: ProposalType,
-        submit_time: String,
+        submit_time: NaiveDateTime,
         voting_start_epoch: u64,
         voting_end_epoch: u64,
         grace_epoch: u64,
@@ -33,11 +35,11 @@ impl Proposal {
         status: String,
     ) -> Self {
         Proposal {
-            id: id as i64,
+            id: id as i32,
             title,
             description,
             content: json!(content),
-            submit_time: NaiveDateTime::parse_from_str(&submit_time, "%Y-%m-%dT%H:%M:%SZ").expect("invalid timestamp"),
+            submit_time,
             voting_start_epoch: voting_start_epoch as i64,
             voting_end_epoch: voting_end_epoch as i64,
             grace_epoch: grace_epoch as i64,
@@ -47,22 +49,11 @@ impl Proposal {
     }
 
     pub async fn save(&self, db: &Database) -> Result<(), Error> {
-        let mut tx = db.pool().begin().await?;
         sqlx::query(
             r#"
             INSERT INTO proposal (id, title, description, content, submit_time, voting_start_epoch, voting_end_epoch, grace_epoch, proposer_address, status)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            ON CONFLICT (id) DO UPDATE SET
-            title = EXCLUDED.title,
-            description = EXCLUDED.description,
-            content = EXCLUDED.content,
-            submit_time = EXCLUDED.submit_time,
-            voting_start_epoch = EXCLUDED.voting_start_epoch,
-            voting_end_epoch = EXCLUDED.voting_end_epoch,
-            grace_epoch = EXCLUDED.grace_epoch,
-            proposer_address = EXCLUDED.proposer_address,
-            status = EXCLUDED.status
-            WHERE proposal.submit_time <= EXCLUDED.submit_time
+            ON CONFLICT DO NOTHING
             "#,
         )
         .bind(&self.id)
@@ -75,16 +66,43 @@ impl Proposal {
         .bind(&self.grace_epoch)
         .bind(&self.proposer_address)
         .bind(&self.status)
-        .execute(&mut tx)
+        .execute(&db.pool())
         .await?;
 
-        tx.commit().await?;
         Ok(())
+    }
+
+    pub async fn update_active_proposals_statuses_from_init(db: &Database, epoch: u64) -> Result<(), Error> {
+        sqlx::query(
+            r#"UPDATE proposal SET status = 'PROPOSAL_STATUS_VOTING_PERIOD' WHERE voting_start_epoch = $1 AND status = 'PROPOSAL_STATUS_INIT'"#,
+        )
+        .bind(epoch as i64)
+        .execute(&db.pool())
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn voting_proposals(db: &Database) -> Result<Vec<Proposal>, Error> {
+        let proposals = sqlx::query_as(r#"SELECT * FROM proposal WHERE status = 'PROPOSAL_STATUS_VOTING_PERIOD'"#)
+            .fetch_all(&db.pool())
+            .await?;
+
+        Ok(proposals)
+    }
+
+    pub async fn voting_ended_proposals(db: &Database, epoch: u64) -> Result<Vec<Proposal>, Error> {
+        let proposals = sqlx::query_as(r#"SELECT * FROM proposal WHERE voting_end_epoch = $1"#)
+            .bind(epoch as i64)
+            .fetch_all(&db.pool())
+            .await?;
+
+        Ok(proposals)
     }
 }
 
 pub struct ProposalVote {
-    pub proposal_id: i64,
+    pub proposal_id: i32,
     pub voter_address: String,
     pub option: String,
     pub height: i64,
@@ -93,7 +111,7 @@ pub struct ProposalVote {
 impl ProposalVote {
     pub fn new(proposal_id: u64, voter: String, option: String, height: i64) -> Self {
         ProposalVote {
-            proposal_id: proposal_id as i64,
+            proposal_id: proposal_id as i32,
             voter_address: voter,
             option: match option.as_str() {
                 "yay" => "yes".to_string(),
@@ -105,7 +123,6 @@ impl ProposalVote {
     }
 
     pub async fn save(&self, db: &Database) -> Result<(), Error> {
-        let mut tx = db.pool().begin().await?;
         sqlx::query(
             r#"
             INSERT INTO proposal_vote (proposal_id, voter_address, option, height)
@@ -120,46 +137,43 @@ impl ProposalVote {
         .bind(&self.voter_address)
         .bind(&self.option)
         .bind(&self.height)
-        .execute(&mut tx)
+        .execute(&db.pool())
         .await?;
 
-        tx.commit().await?;
         Ok(())
     }
 }
 
-
 pub struct ProposalTallyResult {
-    pub proposal_id: i64,
-    pub yes: i64,
-    pub abstain: i64,
-    pub no: i64,
+    pub proposal_id: i32,
+    pub yes: String,
+    pub no: String,
+    pub abstain: String,
     pub height: i64,
 }
 
 impl ProposalTallyResult {
-    pub fn new(proposal_id: i64, yes: u64, abstain: u64, no: u64, height: u64) -> Self {
+    pub fn new(proposal_id: i64, yes: String, no: String, abstain: String, height: u64) -> Self {
         ProposalTallyResult {
-            proposal_id,
-            yes: yes as i64,
-            abstain: abstain as i64,
-            no: no as i64,
+            proposal_id: proposal_id as i32,
+            yes,
+            no,
+            abstain,
             height: height as i64,
         }
     }
 
     pub async fn save(&self, db: &Database) -> Result<(), Error> {
-        let mut tx = db.pool().begin().await?;
         sqlx::query(
             r#"
-            INSERT INTO tally (proposal_id, yes, abstain, no, height)
+            INSERT INTO proposal_tally_result (proposal_id, yes, abstain, no, height)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (proposal_id) DO UPDATE SET
             yes = EXCLUDED.yes,
             abstain = EXCLUDED.abstain,
             no = EXCLUDED.no,
             height = EXCLUDED.height
-            WHERE tally.height <= EXCLUDED.height
+            WHERE proposal_tally_result.height <= EXCLUDED.height
             "#,
         )
         .bind(&self.proposal_id)
@@ -167,10 +181,9 @@ impl ProposalTallyResult {
         .bind(&self.abstain)
         .bind(&self.no)
         .bind(&self.height)
-        .execute(&mut tx)
+        .execute(&db.pool())
         .await?;
 
-        tx.commit().await?;
         Ok(())
     }
 }

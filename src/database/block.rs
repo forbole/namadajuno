@@ -48,6 +48,19 @@ impl Block {
         Ok(())
     }
 
+    pub async fn block_at_height(db: &Database, height: i64) -> Result<Option<Self>, Error> {
+        let block = sqlx::query_as::<_, Self>(
+            r#"SELECT * FROM block
+            WHERE height = $1
+            "#,
+        )
+        .bind(height)
+        .fetch_optional(&db.pool())
+        .await?;
+    
+       Ok(block)
+    }
+
     pub async fn latest_block(db: &Database) -> Result<Option<Self>, Error> {
         let block = sqlx::query_as::<_, Self>(
             r#"SELECT * FROM block

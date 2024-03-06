@@ -5,7 +5,7 @@ use tendermint_rpc::{endpoint, Client, HttpClient, Paging};
 use tokio::runtime::Handle;
 
 use namada_sdk::governance::storage::proposal::StorageProposal;
-use namada_sdk::governance::utils::{ProposalResult, Vote};
+use namada_sdk::governance::utils::ProposalResult;
 use namada_sdk::rpc;
 use namada_sdk::state::Epoch;
 use namada_sdk::types::address::Address;
@@ -158,25 +158,34 @@ impl Node {
         match proposal {
             Err(e) => {
                 if let Error::ProposalNotFound = e {
-                   return Ok(None)
+                    return Ok(None);
                 }
                 Err(e)
-            },
+            }
             Ok(proposal) => Ok(Some(proposal)),
         }
     }
 
-    pub async fn proposal_result(&self, proposal_id: u64) -> Result<ProposalResult, Error> {
-        let result = rpc::query_proposal_result(&self.rpc_client, proposal_id)
-            .await?
-            .ok_or(Error::ProposalNotFound)?;
+    pub async fn proposal_result(&self, proposal_id: u64) -> Result<Option<ProposalResult>, Error> {
+        let client = self.clone();
+        let result = Handle::current()
+            .spawn_blocking(move || {
+                Handle::current().block_on(async move {
+                    rpc::query_proposal_result(&client.rpc_client, proposal_id)
+                        .await?
+                        .ok_or(Error::ProposalNotFound)
+                })
+            })
+            .await?;
 
-        Ok(result)
-    }
-
-    pub async fn proposal_votes(&self, proposal_id: u64) -> Result<Vec<Vote>, Error> {
-        let votes = rpc::query_proposal_votes(&self.rpc_client, proposal_id).await?;
-
-        Ok(votes)
+        match result {
+            Err(e) => {
+                if let Error::ProposalNotFound = e {
+                    return Ok(None);
+                }
+                Err(e)
+            }
+            Ok(proposal) => Ok(Some(proposal)),
+        }
     }
 }
