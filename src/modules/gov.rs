@@ -51,7 +51,7 @@ impl ModuleBasic for GovModule {
 
         // Update ended proposals
         let ended_proposals = Proposal::voting_ended_proposals(&self.db, epoch.into()).await?;
-        for mut proposal in ended_proposals {
+        for proposal in ended_proposals {
             let tally = self.node.proposal_result(proposal.id as u64).await?;
 
             if let Some(tally) = tally {
