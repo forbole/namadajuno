@@ -53,7 +53,8 @@ impl Proposal {
             r#"
             INSERT INTO proposal (id, title, description, content, submit_time, voting_start_epoch, voting_end_epoch, grace_epoch, proposer_address, status)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            ON CONFLICT DO NOTHING
+            ON CONFLICT (id) DO UPDATE SET
+                status = EXCLUDED.status
             "#,
         )
         .bind(&self.id)
@@ -72,7 +73,10 @@ impl Proposal {
         Ok(())
     }
 
-    pub async fn update_active_proposals_statuses_from_init(db: &Database, epoch: u64) -> Result<(), Error> {
+    pub async fn update_active_proposals_statuses_from_init(
+        db: &Database,
+        epoch: u64,
+    ) -> Result<(), Error> {
         sqlx::query(
             r#"UPDATE proposal SET status = 'PROPOSAL_STATUS_VOTING_PERIOD' WHERE voting_start_epoch = $1 AND status = 'PROPOSAL_STATUS_INIT'"#,
         )
@@ -84,9 +88,11 @@ impl Proposal {
     }
 
     pub async fn voting_proposals(db: &Database) -> Result<Vec<Proposal>, Error> {
-        let proposals = sqlx::query_as(r#"SELECT * FROM proposal WHERE status = 'PROPOSAL_STATUS_VOTING_PERIOD'"#)
-            .fetch_all(&db.pool())
-            .await?;
+        let proposals = sqlx::query_as(
+            r#"SELECT * FROM proposal WHERE status = 'PROPOSAL_STATUS_VOTING_PERIOD'"#,
+        )
+        .fetch_all(&db.pool())
+        .await?;
 
         Ok(proposals)
     }
