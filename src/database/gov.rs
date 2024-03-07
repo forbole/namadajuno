@@ -171,6 +171,7 @@ impl ProposalVote {
 pub struct ProposalTallyResult {
     pub proposal_id: i32,
     pub tally_type: String,
+    pub total: String,
     pub yes: String,
     pub no: String,
     pub abstain: String,
@@ -178,7 +179,7 @@ pub struct ProposalTallyResult {
 }
 
 impl ProposalTallyResult {
-    pub fn new(proposal_id: i64, tally_type: TallyType, yes: String, no: String, abstain: String, height: u64) -> Self {
+    pub fn new(proposal_id: i64, tally_type: TallyType, total: String, yes: String, no: String, abstain: String, height: u64) -> Self {
         ProposalTallyResult {
             proposal_id: proposal_id as i32,
             tally_type: match tally_type {
@@ -186,6 +187,7 @@ impl ProposalTallyResult {
                 TallyType::OneHalfOverOneThird => "one_half_over_one_third".to_string(),
                 TallyType::LessOneHalfOverOneThirdNay => "less_one_half_over_one_third_nay".to_string(),
             },
+            total,
             yes,
             no,
             abstain,
@@ -196,9 +198,10 @@ impl ProposalTallyResult {
     pub async fn save(&self, db: &Database) -> Result<(), Error> {
         sqlx::query(
             r#"
-            INSERT INTO proposal_tally_result (proposal_id, tally_type, yes, abstain, no, height)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO proposal_tally_result (proposal_id, tally_type, total, yes, abstain, no, height)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (proposal_id) DO UPDATE SET
+            total = EXCLUDED.total,
             yes = EXCLUDED.yes,
             abstain = EXCLUDED.abstain,
             no = EXCLUDED.no,
@@ -208,6 +211,7 @@ impl ProposalTallyResult {
         )
         .bind(&self.proposal_id)
         .bind(&self.tally_type)
+        .bind(&self.total)
         .bind(&self.yes)
         .bind(&self.abstain)
         .bind(&self.no)

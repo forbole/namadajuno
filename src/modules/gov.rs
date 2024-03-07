@@ -32,6 +32,7 @@ impl GovModule {
                 ProposalTallyResult::new(
                     proposal.id as i64,
                     tally.tally_type,
+                    tally.total_voting_power.to_string(),
                     tally.total_yay_power.to_string(),
                     tally.total_nay_power.to_string(),
                     tally.total_abstain_power.to_string(),
@@ -60,6 +61,7 @@ impl ModuleBasic for GovModule {
                 ProposalTallyResult::new(
                     proposal.id as i64,
                     tally.tally_type,
+                    tally.total_voting_power.to_string(),
                     tally.total_yay_power.to_string(),
                     tally.total_nay_power.to_string(),
                     tally.total_abstain_power.to_string(),
