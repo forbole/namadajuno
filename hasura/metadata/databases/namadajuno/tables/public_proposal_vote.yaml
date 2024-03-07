@@ -1,0 +1,34 @@
+table:
+  name: proposal_vote
+  schema: public
+object_relationships:
+- name: block
+  using:
+    manual_configuration:
+      column_mapping:
+        height: height
+      insertion_order: null
+      remote_table:
+        name: block
+        schema: public
+- name: proposal
+  using:
+    manual_configuration:
+      column_mapping:
+        proposal_id: id
+      insertion_order: null
+      remote_table:
+        name: proposal
+        schema: public
+select_permissions:
+- permission:
+    allow_aggregations: false
+    columns:
+    - proposal_id
+    - voter_address
+    - option
+    - timestamp
+    - height
+    filter: {}
+    limit: 100
+  role: anonymous
