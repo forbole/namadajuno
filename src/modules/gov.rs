@@ -130,6 +130,7 @@ impl ModuleBasic for GovModule {
                             .get("details")
                             .map(|t| t.to_string())
                             .unwrap_or_else(|| "No description".to_string()),
+                            proposal.content,
                         proposal.r#type,
                         Block::block_at_height(&self.db, message.height)
                             .await?

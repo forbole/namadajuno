@@ -3,6 +3,7 @@ use namada_sdk::governance::ProposalType;
 use serde_json::json;
 use sqlx::types::JsonValue;
 use sqlx::FromRow;
+use std::collections::BTreeMap;
 
 use crate::database::Database;
 use crate::Error;
@@ -12,6 +13,7 @@ pub struct Proposal {
     pub id: i32,
     pub title: String,
     pub description: String,
+    pub metadata: String,
     pub content: JsonValue,
     pub submit_time: NaiveDateTime,
     pub voting_start_epoch: i64,
@@ -26,6 +28,7 @@ impl Proposal {
         id: u64,
         title: String,
         description: String,
+        metadata: BTreeMap<String, String>,
         content: ProposalType,
         submit_time: NaiveDateTime,
         voting_start_epoch: u64,
@@ -38,6 +41,7 @@ impl Proposal {
             id: id as i32,
             title,
             description,
+            metadata: json!(&metadata).to_string(),
             content: json!(content),
             submit_time,
             voting_start_epoch: voting_start_epoch as i64,
@@ -51,14 +55,15 @@ impl Proposal {
     pub async fn save(&self, db: &Database) -> Result<(), Error> {
         sqlx::query(
             r#"
-            INSERT INTO proposal (id, title, description, content, submit_time, voting_start_epoch, voting_end_epoch, grace_epoch, proposer_address, status)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            INSERT INTO proposal (id, title, description, metadata, content, submit_time, voting_start_epoch, voting_end_epoch, grace_epoch, proposer_address, status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             ON CONFLICT DO NOTHING
             "#,
         )
         .bind(&self.id)
         .bind(&self.title)
         .bind(&self.description)
+        .bind(&self.metadata)
         .bind(&self.content)
         .bind(&self.submit_time)
         .bind(&self.voting_start_epoch)
