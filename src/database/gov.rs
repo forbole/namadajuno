@@ -196,8 +196,8 @@ impl ProposalTallyResult {
     pub async fn save(&self, db: &Database) -> Result<(), Error> {
         sqlx::query(
             r#"
-            INSERT INTO proposal_tally_result (proposal_id, yes, abstain, no, height)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO proposal_tally_result (proposal_id, tally_type, yes, abstain, no, height)
+            VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (proposal_id) DO UPDATE SET
             yes = EXCLUDED.yes,
             abstain = EXCLUDED.abstain,
@@ -207,6 +207,7 @@ impl ProposalTallyResult {
             "#,
         )
         .bind(&self.proposal_id)
+        .bind(&self.tally_type)
         .bind(&self.yes)
         .bind(&self.abstain)
         .bind(&self.no)
