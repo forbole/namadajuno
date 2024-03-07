@@ -27,7 +27,6 @@ select_permissions:
     - proposal_id
     - voter_address
     - option
-    - timestamp
     - height
     filter: {}
     limit: 100

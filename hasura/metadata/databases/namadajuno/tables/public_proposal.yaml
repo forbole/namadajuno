@@ -35,7 +35,7 @@ select_permissions:
     - id
     - title
     - description
-    - tally_type
+    - metadata
     - submit_time
     - voting_start_epoch
     - voting_end_epoch
