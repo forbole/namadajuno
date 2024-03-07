@@ -1,5 +1,6 @@
 use chrono::NaiveDateTime;
 use namada_sdk::governance::ProposalType;
+use namada_sdk::governance::utils::TallyType;
 use serde_json::json;
 use sqlx::types::JsonValue;
 use sqlx::FromRow;
@@ -169,6 +170,7 @@ impl ProposalVote {
 
 pub struct ProposalTallyResult {
     pub proposal_id: i32,
+    pub tally_type: String,
     pub yes: String,
     pub no: String,
     pub abstain: String,
@@ -176,9 +178,14 @@ pub struct ProposalTallyResult {
 }
 
 impl ProposalTallyResult {
-    pub fn new(proposal_id: i64, yes: String, no: String, abstain: String, height: u64) -> Self {
+    pub fn new(proposal_id: i64, tally_type: TallyType, yes: String, no: String, abstain: String, height: u64) -> Self {
         ProposalTallyResult {
             proposal_id: proposal_id as i32,
+            tally_type: match tally_type {
+                TallyType::TwoThirds => "two_thirds".to_string(),
+                TallyType::OneHalfOverOneThird => "one_half_over_one_third".to_string(),
+                TallyType::LessOneHalfOverOneThirdNay => "less_one_half_over_one_third_nay".to_string(),
+            },
             yes,
             no,
             abstain,

@@ -31,6 +31,7 @@ impl GovModule {
                 // Save proposal tally result
                 ProposalTallyResult::new(
                     proposal.id as i64,
+                    tally.tally_type,
                     tally.total_yay_power.to_string(),
                     tally.total_nay_power.to_string(),
                     tally.total_abstain_power.to_string(),
@@ -58,6 +59,7 @@ impl ModuleBasic for GovModule {
                 // Save proposal tally result
                 ProposalTallyResult::new(
                     proposal.id as i64,
+                    tally.tally_type,
                     tally.total_yay_power.to_string(),
                     tally.total_nay_power.to_string(),
                     tally.total_abstain_power.to_string(),
@@ -130,7 +132,7 @@ impl ModuleBasic for GovModule {
                             .get("details")
                             .map(|t| t.to_string())
                             .unwrap_or_else(|| "No description".to_string()),
-                            proposal.content,
+                        proposal.content,
                         proposal.r#type,
                         Block::block_at_height(&self.db, message.height)
                             .await?
