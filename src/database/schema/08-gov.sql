@@ -30,6 +30,7 @@ CREATE TABLE proposal_tally_result
 (
     proposal_id  INTEGER    REFERENCES proposal (id) PRIMARY KEY,
     tally_type   TEXT       NOT NULL,
+    total        TEXT       NOT NULL,
     yes          TEXT       NOT NULL,
     abstain      TEXT       NOT NULL,
     no           TEXT       NOT NULL,
