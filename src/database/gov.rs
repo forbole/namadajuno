@@ -98,7 +98,7 @@ impl Proposal {
         id: i32,
         status: String,
     ) -> Result<(), Error> {
-        sqlx::query(r#"UPDATE proposal SET status = $1 WHERE id = $2 AND voting_end_epoch = $3"#)
+        sqlx::query(r#"UPDATE proposal SET status = $1 WHERE id = $2 AND voting_end_epoch <= $3"#)
             .bind(status)
             .bind(id)
             .bind(epoch as i64)
