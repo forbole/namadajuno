@@ -83,7 +83,7 @@ impl Proposal {
         epoch: u64,
     ) -> Result<(), Error> {
         sqlx::query(
-            r#"UPDATE proposal SET status = 'PROPOSAL_STATUS_VOTING_PERIOD' WHERE voting_start_epoch = $1 AND status = 'PROPOSAL_STATUS_INIT'"#,
+            r#"UPDATE proposal SET status = 'PROPOSAL_STATUS_VOTING_PERIOD' WHERE voting_start_epoch <= $1 AND status = 'PROPOSAL_STATUS_INIT'"#,
         )
         .bind(epoch as i64)
         .execute(&db.pool())
