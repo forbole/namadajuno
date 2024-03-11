@@ -116,7 +116,7 @@ impl Proposal {
     }
 
     pub async fn voting_ended_proposals(db: &Database, epoch: u64) -> Result<Vec<Proposal>, Error> {
-        let proposals = sqlx::query_as(r#"SELECT * FROM proposal WHERE voting_end_epoch = $1"#)
+        let proposals = sqlx::query_as(r#"SELECT * FROM proposal WHERE voting_end_epoch <= $1"#)
             .bind(epoch as i64)
             .fetch_all(&db.pool())
             .await?;
