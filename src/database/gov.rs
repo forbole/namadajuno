@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
-use namada_sdk::governance::ProposalType;
 use namada_sdk::governance::utils::TallyType;
+use namada_sdk::governance::ProposalType;
 use serde_json::json;
 use sqlx::types::JsonValue;
 use sqlx::FromRow;
@@ -92,15 +92,18 @@ impl Proposal {
         Ok(())
     }
 
-    pub async fn update_ended_proposal_status(db: &Database, epoch: u64, id: i32, status: String) -> Result<(), Error> {
-        sqlx::query(
-            r#"UPDATE proposal SET status = $1 WHERE id = $2 AND voting_end_epoch = $3"#,
-        )
-        .bind(status)
-        .bind(id)
-        .bind(epoch as i64)
-        .execute(&db.pool())
-        .await?;
+    pub async fn update_ended_proposal_status(
+        db: &Database,
+        epoch: u64,
+        id: i32,
+        status: String,
+    ) -> Result<(), Error> {
+        sqlx::query(r#"UPDATE proposal SET status = $1 WHERE id = $2 AND voting_end_epoch = $3"#)
+            .bind(status)
+            .bind(id)
+            .bind(epoch as i64)
+            .execute(&db.pool())
+            .await?;
 
         Ok(())
     }
@@ -116,7 +119,7 @@ impl Proposal {
     }
 
     pub async fn voting_ended_proposals(db: &Database, epoch: u64) -> Result<Vec<Proposal>, Error> {
-        let proposals = sqlx::query_as(r#"SELECT * FROM proposal WHERE voting_end_epoch <= $1"#)
+        let proposals = sqlx::query_as(r#"SELECT * FROM proposal WHERE voting_end_epoch <= $1" AND status != 'PROPOSAL_STATUS_PASSED' OR status != 'PROPOSAL_STATUS_REJECTED'"#)
             .bind(epoch as i64)
             .fetch_all(&db.pool())
             .await?;
@@ -179,13 +182,23 @@ pub struct ProposalTallyResult {
 }
 
 impl ProposalTallyResult {
-    pub fn new(proposal_id: i64, tally_type: TallyType, total: String, yes: String, no: String, abstain: String, height: u64) -> Self {
+    pub fn new(
+        proposal_id: i64,
+        tally_type: TallyType,
+        total: String,
+        yes: String,
+        no: String,
+        abstain: String,
+        height: u64,
+    ) -> Self {
         ProposalTallyResult {
             proposal_id: proposal_id as i32,
             tally_type: match tally_type {
                 TallyType::TwoThirds => "two_thirds".to_string(),
                 TallyType::OneHalfOverOneThird => "one_half_over_one_third".to_string(),
-                TallyType::LessOneHalfOverOneThirdNay => "less_one_half_over_one_third_nay".to_string(),
+                TallyType::LessOneHalfOverOneThirdNay => {
+                    "less_one_half_over_one_third_nay".to_string()
+                }
             },
             total,
             yes,
