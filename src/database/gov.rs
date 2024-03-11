@@ -97,8 +97,8 @@ impl Proposal {
             r#"UPDATE proposal SET status = $1 WHERE id = $2 AND voting_end_epoch = $3"#,
         )
         .bind(status)
-        .bind(epoch as i64)
         .bind(id)
+        .bind(epoch as i64)
         .execute(&db.pool())
         .await?;
 
