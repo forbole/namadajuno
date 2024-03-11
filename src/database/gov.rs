@@ -94,7 +94,7 @@ impl Proposal {
 
     pub async fn update_ended_proposal_status(db: &Database, epoch: u64, id: i32, status: String) -> Result<(), Error> {
         sqlx::query(
-            r#"UPDATE proposal SET status = $1 WHERE id = $2 AND voting_end_epoch = $3 AND status = 'PROPOSAL_STATUS_VOTING_PERIOD'"#,
+            r#"UPDATE proposal SET status = $1 WHERE id = $2 AND voting_end_epoch = $3"#,
         )
         .bind(status)
         .bind(epoch as i64)
