@@ -119,7 +119,7 @@ impl Proposal {
     }
 
     pub async fn voting_ended_proposals(db: &Database, epoch: u64) -> Result<Vec<Proposal>, Error> {
-        let proposals = sqlx::query_as(r#"SELECT * FROM proposal WHERE voting_end_epoch <= $1 AND status != 'PROPOSAL_STATUS_PASSED' OR status != 'PROPOSAL_STATUS_REJECTED'"#)
+        let proposals = sqlx::query_as(r#"SELECT * FROM proposal WHERE voting_end_epoch <= $1 AND (status != 'PROPOSAL_STATUS_PASSED' OR status != 'PROPOSAL_STATUS_REJECTED')"#)
             .bind(epoch as i64)
             .fetch_all(&db.pool())
             .await?;
