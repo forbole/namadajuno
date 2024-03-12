@@ -78,8 +78,8 @@ impl Node {
 
                     let mut validator_infos = vec![];
 
-                    // HACK: Query 10 validators at a time, to avoid from crashing the RPC server
-                    for chunk in validators.chunks(10) {
+                    // HACK: Query 5 validators at a time, to avoid from crashing the RPC server
+                    for chunk in validators.chunks(5) {
                         let mut tasks = vec![];
 
                         for validator in chunk {
