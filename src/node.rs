@@ -93,6 +93,9 @@ impl Node {
                             }
                             validator_infos.push(result.unwrap());
                         }
+
+                        // Sleep for a bit to avoid crashing the RPC server
+                        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
                     }
                     Ok(validator_infos)
                 })
